@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tradefada SMC Dashboard</title>
+  <style>
+    :root {
+      --bg: #05070f;
+      --panel: rgba(14, 20, 39, 0.82);
+      --panel-2: rgba(22, 31, 58, 0.72);
+      --border: rgba(115, 255, 236, 0.22);
+      --text: #e8fbff;
+      --muted: #8fa4b8;
+      --cyan: #35ffe4;
+      --green: #48ff9b;
+      --purple: #9d5cff;
+      --pink: #ff4fd8;
+      --yellow: #ffe66d;
+      --red: #ff4b6e;
+      --shadow: 0 24px 90px rgba(0, 0, 0, 0.42);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --transition: 220ms ease;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 10% 10%, rgba(53, 255, 228, 0.16), transparent 28%),
+        radial-gradient(circle at 88% 6%, rgba(157, 92, 255, 0.22), transparent 30%),
+        radial-gradient(circle at 65% 86%, rgba(255, 79, 216, 0.12), transparent 28%),
+        linear-gradient(135deg, #03050b 0%, #070b16 45%, #0b0820 100%);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.95), rgba(0,0,0,0.1));
+      z-index: 0;
+    }
+
+    .orb {
+      position: fixed;
+      width: 360px;
+      height: 360px;
+      border-radius: 999px;
+      filter: blur(70px);
+      opacity: 0.2;
+      pointer-events: none;
+      z-index: 0;
+      animation: float 9s ease-in-out infinite alternate;
+    }
+    .orb.one { left: -120px; top: 220px; background: var(--cyan); }
+    .orb.two { right: -130px; top: 420px; background: var(--purple); animation-delay: -2s; }
+    @keyframes float { from { transform: translateY(-20px) scale(1); } to { transform: translateY(32px) scale(1.08); } }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      width: min(1320px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 56px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+
+    .brand { display: flex; align-items: center; gap: 13px; }
+    .logo {
+      width: 50px;
+      height: 50px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--border);
+      border-radius: 17px;
+      background: linear-gradient(135deg, rgba(53, 255, 228, 0.2), rgba(157, 92, 255, 0.22)), rgba(255, 255, 255, 0.04);
+      box-shadow: 0 0 24px rgba(53, 255, 228, 0.28);
+    }
+    .logo svg { width: 28px; height: 28px; fill: none; stroke: var(--cyan); stroke-width: 2.3; stroke-linecap: round; stroke-linejoin: round; }
+    .brand h1 { margin: 0; font-size: 20px; line-height: 1.1; letter-spacing: -0.03em; }
+    .brand p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 10px 14px;
+      border: 1px solid rgba(72, 255, 155, 0.24);
+      border-radius: 999px;
+      color: #c9ffe3;
+      background: rgba(72, 255, 155, 0.08);
+      box-shadow: 0 0 22px rgba(72, 255, 155, 0.13);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    .pulse-dot { width: 8px; height: 8px; border-radius: 999px; background: var(--green); box-shadow: 0 0 0 0 rgba(72, 255, 155, 0.65); animation: pulse 1.8s infinite; }
+    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(72, 255, 155, 0.65); } 70% { box-shadow: 0 0 0 10px rgba(72, 255, 155, 0); } 100% { box-shadow: 0 0 0 0 rgba(72, 255, 155, 0); } }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 24px;
+      align-items: stretch;
+      margin-bottom: 24px;
+    }
+
+    .hero-card, .checker-card, .panel {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      background: linear-gradient(180deg, rgba(16, 24, 45, 0.84), rgba(9, 13, 25, 0.8));
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(22px);
+    }
+
+    .hero-card {
+      position: relative;
+      overflow: hidden;
+      padding: 38px;
+      min-height: 420px;
+    }
+    .hero-card::after {
+      content: "";
+      position: absolute;
+      width: 360px;
+      height: 360px;
+      right: -120px;
+      top: -80px;
+      border-radius: 999px;
+      background: radial-gradient(circle, rgba(53, 255, 228, 0.2), transparent 66%);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      width: fit-content;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border: 1px solid rgba(53, 255, 228, 0.24);
+      border-radius: 999px;
+      color: #c7fffb;
+      background: rgba(53, 255, 228, 0.07);
+      font-size: 13px;
+      margin-bottom: 24px;
+    }
+    .spark { width: 9px; height: 9px; background: var(--cyan); border-radius: 50%; box-shadow: 0 0 16px var(--cyan); }
+
+    .hero h2 {
+      margin: 0;
+      max-width: 760px;
+      font-size: clamp(38px, 6vw, 72px);
+      line-height: 0.96;
+      letter-spacing: -0.07em;
+    }
+    .gradient-text { background: linear-gradient(90deg, var(--cyan), var(--purple) 58%, var(--pink)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .hero-copy { max-width: 650px; margin: 22px 0 0; color: #b7c8d8; font-size: 16px; line-height: 1.75; }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+
+    button, .button-like {
+      border: 0;
+      cursor: pointer;
+      color: #031015;
+      font-weight: 850;
+      letter-spacing: -0.02em;
+      border-radius: 16px;
+      padding: 14px 18px;
+      background: linear-gradient(135deg, var(--cyan), var(--green));
+      box-shadow: 0 15px 44px rgba(53, 255, 228, 0.2);
+      transition: transform var(--transition), box-shadow var(--transition), filter var(--transition);
+    }
+    button:hover, .button-like:hover { transform: translateY(-2px); filter: brightness(1.07); box-shadow: 0 20px 54px rgba(53, 255, 228, 0.3); }
+    button.secondary { color: var(--text); border: 1px solid rgba(255, 255, 255, 0.12); background: rgba(255, 255, 255, 0.06); box-shadow: none; }
+
+    .mini-grid { position: relative; z-index: 2; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 30px; }
+    .metric { padding: 16px; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; background: rgba(255,255,255,0.045); }
+    .metric strong { display: block; font-size: 22px; color: var(--cyan); margin-bottom: 5px; }
+    .metric span { color: var(--muted); font-size: 12px; }
+
+    .checker-card { padding: 24px; display: flex; flex-direction: column; gap: 18px; }
+    .checker-title { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; }
+    .checker-title h3 { margin: 0; font-size: 22px; letter-spacing: -0.04em; }
+    .checker-title p { margin: 6px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .badge { padding: 8px 10px; border-radius: 999px; background: rgba(157, 92, 255, 0.12); color: #dfd0ff; border: 1px solid rgba(157, 92, 255, 0.24); font-size: 12px; white-space: nowrap; }
+
+    .form-group { display: grid; gap: 9px; }
+    label { color: #c9d9e7; font-size: 13px; font-weight: 750; }
+    input, select {
+      width: 100%;
+      padding: 15px 16px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.045);
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+    }
+    input:focus, select:focus { border-color: rgba(53, 255, 228, 0.55); box-shadow: 0 0 0 4px rgba(53, 255, 228, 0.08); background: rgba(255, 255, 255, 0.07); }
+    select option { background: #10172b; color: #f2fbff; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .error { min-height: 20px; color: var(--red); font-size: 13px; }
+
+    .url-preview { display: grid; gap: 10px; padding: 16px; border-radius: 18px; border: 1px dashed rgba(53, 255, 228, 0.28); background: rgba(53, 255, 228, 0.055); }
+    .url-preview .domain { color: var(--cyan); font-weight: 850; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .score-row { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; }
+    .score-line { flex: 1; height: 8px; overflow: hidden; border-radius: 999px; background: rgba(255, 255, 255, 0.08); }
+    .score-fill { height: 100%; width: 74%; border-radius: inherit; background: linear-gradient(90deg, var(--purple), var(--cyan), var(--green)); transition: width 500ms ease; }
+
+    .dashboard { display: grid; grid-template-columns: 1.5fr 0.9fr; gap: 24px; margin-top: 24px; }
+    .panel { padding: 22px; border-radius: var(--radius-xl); }
+    .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 18px; }
+    .panel-heading h3 { margin: 0; font-size: 20px; letter-spacing: -0.04em; }
+    .panel-heading span { color: var(--muted); font-size: 13px; }
+
+    .tabs, .category-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tab, .category-tab {
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 999px;
+      padding: 9px 12px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.045);
+      font-size: 12px;
+      font-weight: 850;
+      transition: var(--transition);
+    }
+    .tab.active, .tab:hover, .category-tab.active, .category-tab:hover { color: #081316; background: var(--cyan); border-color: rgba(53, 255, 228, 0.75); box-shadow: 0 0 24px rgba(53, 255, 228, 0.22); }
+
+    .chart-shell {
+      position: relative;
+      height: 390px;
+      padding: 16px;
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,0.085);
+      background:
+        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px),
+        rgba(2, 7, 17, 0.5);
+      background-size: 38px 38px;
+      overflow: hidden;
+    }
+    canvas { width: 100%; height: 100%; display: block; }
+    .chart-overlay { position: absolute; inset: 16px; pointer-events: none; }
+    .price-label { position: absolute; right: 12px; padding: 6px 9px; border-radius: 999px; font-size: 12px; font-weight: 850; box-shadow: 0 0 18px rgba(255,255,255,0.06); }
+    .price-label.tp { top: 17%; color: #05150c; background: var(--green); }
+    .price-label.entry { top: 48%; color: #061016; background: var(--cyan); }
+    .price-label.sl { top: 76%; color: #fff; background: var(--red); }
+
+    .breakdown { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 14px; }
+    .tile { padding: 16px; border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; background: rgba(255, 255, 255, 0.045); transition: transform var(--transition), border-color var(--transition), background var(--transition); }
+    .tile:hover { transform: translateY(-3px); border-color: rgba(53, 255, 228, 0.26); background: rgba(53, 255, 228, 0.055); }
+    .tile span { display: block; color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+    .tile strong { font-size: 18px; letter-spacing: -0.03em; }
+
+    .side-stack { display: grid; gap: 24px; }
+    .signal-card { border-radius: 22px; padding: 20px; border: 1px solid rgba(53, 255, 228, 0.16); background: linear-gradient(180deg, rgba(53,255,228,0.08), rgba(157,92,255,0.07)); }
+    .signal-top { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 16px; }
+    .signal-top h4 { margin: 0; font-size: 16px; }
+    .direction { display: inline-flex; align-items: center; gap: 8px; padding: 8px 11px; border-radius: 999px; font-weight: 900; font-size: 12px; }
+    .direction.bullish { color: #05150c; background: var(--green); }
+    .direction.bearish { color: #fff; background: var(--red); }
+    .confidence-ring { width: 155px; height: 155px; margin: 4px auto 18px; border-radius: 999px; display: grid; place-items: center; background: conic-gradient(var(--cyan) 0deg, var(--purple) 268deg, rgba(255,255,255,0.08) 268deg 360deg); box-shadow: 0 0 24px rgba(53, 255, 228, 0.28); transition: background 400ms ease; }
+    .confidence-inner { width: 118px; height: 118px; display: grid; place-items: center; border-radius: inherit; background: #08101e; border: 1px solid rgba(255,255,255,0.08); }
+    .confidence-inner strong { font-size: 34px; letter-spacing: -0.08em; }
+    .signal-list { display: grid; gap: 10px; }
+    .signal-row { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.07); color: var(--muted); font-size: 13px; }
+    .signal-row:last-child { border-bottom: 0; }
+    .signal-row strong { color: var(--text); text-align: right; }
+
+    .watchlist { display: grid; gap: 10px; max-height: 430px; overflow: auto; padding-right: 4px; }
+    .watch-item { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 13px; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; background: rgba(255, 255, 255, 0.04); cursor: pointer; transition: transform var(--transition), border-color var(--transition), background var(--transition); }
+    .watch-item:hover, .watch-item.active { transform: translateY(-2px); border-color: rgba(53,255,228,0.34); background: rgba(53, 255, 228, 0.055); }
+    .watch-item b { display: block; font-size: 14px; margin-bottom: 4px; }
+    .watch-item small { color: var(--muted); }
+    .change { font-weight: 900; font-size: 13px; }
+    .change.up { color: var(--green); }
+    .change.down { color: var(--red); }
+
+    .market-section, .setups-section { margin-top: 24px; }
+    .market-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 16px; }
+    .market-card, .setup-card { border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; background: rgba(255,255,255,0.045); padding: 16px; transition: transform var(--transition), border-color var(--transition), background var(--transition); cursor: pointer; }
+    .market-card:hover, .market-card.active, .setup-card:hover { transform: translateY(-3px); border-color: rgba(53, 255, 228, 0.32); background: rgba(53,255,228,0.06); }
+    .market-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+    .market-card h4, .setup-card h4 { margin: 0; font-size: 16px; letter-spacing: -0.03em; }
+    .market-card p, .setup-card p { margin: 5px 0 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .market-price { color: var(--text); font-weight: 900; font-size: 15px; }
+    .bias-pill, .setup-pill { display: inline-flex; width: fit-content; align-items: center; gap: 6px; padding: 7px 9px; border-radius: 999px; font-size: 11px; font-weight: 900; margin-top: 10px; }
+    .bias-pill.bullish, .setup-pill.buy { color: #05150c; background: var(--green); }
+    .bias-pill.bearish, .setup-pill.sell { color: #fff; background: var(--red); }
+    .setup-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 16px; }
+    .setup-meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+    .setup-meta div { padding: 10px; border-radius: 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.06); }
+    .setup-meta span { display: block; color: var(--muted); font-size: 10px; margin-bottom: 5px; text-transform: uppercase; letter-spacing: .08em; }
+    .setup-meta strong { font-size: 12px; }
+
+    footer { margin-top: 34px; color: #5f7189; font-size: 12px; text-align: center; line-height: 1.6; }
+    .toast { position: fixed; right: 22px; bottom: 22px; z-index: 10; max-width: 360px; padding: 15px 17px; border-radius: 18px; border: 1px solid rgba(53, 255, 228, 0.26); background: rgba(6, 13, 24, 0.92); color: var(--text); box-shadow: var(--shadow), 0 0 24px rgba(53, 255, 228, 0.28); transform: translateY(120%); opacity: 0; transition: 300ms ease; backdrop-filter: blur(18px); font-size: 14px; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+    @media (max-width: 1080px) { .hero, .dashboard { grid-template-columns: 1fr; } .market-grid { grid-template-columns: repeat(3, 1fr); } .setup-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 760px) { .market-grid, .setup-grid, .breakdown { grid-template-columns: 1fr; } .two-col, .mini-grid { grid-template-columns: 1fr; } header { align-items: flex-start; flex-direction: column; } .hero-card, .checker-card, .panel { padding: 20px; border-radius: 22px; } .hero h2 { font-size: 42px; } .chart-shell { height: 310px; } }
+  </style>
+</head>
+<body>
+  <div class="orb one"></div>
+  <div class="orb two"></div>
+
+  <main class="app">
+    <header>
+      <div class="brand" aria-label="Tradefada SMC Dashboard brand">
+        <div class="logo">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 16.5 8.5 12l3 3L20 6.5" />
+            <path d="M20 13v7H4V4h7" />
+          </svg>
+        </div>
+        <div>
+          <h1>Tradefada SMC Dashboard</h1>
+          <p>Smart money setups for forex, indices, gold, and stocks</p>
+        </div>
+      </div>
+      <div class="status-pill"><span class="pulse-dot"></span>Ready setups scanner active</div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-card">
+        <div class="eyebrow"><span class="spark"></span>Major Currencies • Indices • Gold • Stocks • SMC</div>
+        <h2>Find <span class="gradient-text">ready SMC setups</span> with entry, stop loss, and take profit.</h2>
+        <p class="hero-copy">
+          Tradefada scans simulated market structure across major forex pairs, gold, top indices, and leading stocks. Use the dashboard to review trend direction, liquidity zones, multi-timeframe bias, and ready-to-trade setup cards.
+        </p>
+        <div class="hero-actions">
+          <button id="scrollToChecker">Open Market Scanner</button>
+          <button class="secondary" id="randomizeMarket">Generate Ready Setup</button>
+        </div>
+        <div class="mini-grid">
+          <div class="metric"><strong id="heroBias">Bullish</strong><span>Primary bias</span></div>
+          <div class="metric"><strong id="heroRR">1:2.7</strong><span>Risk reward</span></div>
+          <div class="metric"><strong id="heroScore">74%</strong><span>Setup confidence</span></div>
+        </div>
+      </div>
+
+      <aside class="checker-card" id="checker">
+        <div class="checker-title">
+          <div>
+            <h3>Market Setup Scanner</h3>
+            <p>Paste a product or broker URL, choose market type, and generate a clean SMC trading breakdown.</p>
+          </div>
+          <span class="badge">Client-side demo</span>
+        </div>
+
+        <div class="form-group">
+          <label for="productUrl">Website or Product URL</label>
+          <input id="productUrl" type="url" placeholder="https://tradefada.com" value="https://tradefada-smc.com" autocomplete="url" />
+          <div class="error" id="urlError" role="alert"></div>
+        </div>
+
+        <div class="two-col">
+          <div class="form-group">
+            <label for="assetClass">Market Section</label>
+            <select id="assetClass">
+              <option value="currencies">Major Currencies</option>
+              <option value="indices">Indices</option>
+              <option value="gold">Gold</option>
+              <option value="stocks">Stocks</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="timeframe">Primary Timeframe</label>
+            <select id="timeframe">
+              <option value="15m">15 Minutes</option>
+              <option value="1h" selected>1 Hour</option>
+              <option value="4h">4 Hours</option>
+              <option value="1d">Daily</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="form-group">
+            <label for="riskLevel">Risk Level</label>
+            <select id="riskLevel">
+              <option value="conservative">Conservative</option>
+              <option value="balanced" selected>Balanced</option>
+              <option value="aggressive">Aggressive</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="capital">Account Size</label>
+            <input id="capital" type="number" min="100" step="100" value="5000" />
+          </div>
+        </div>
+
+        <button id="analyzeBtn">Generate Ready Setups</button>
+
+        <div class="url-preview" aria-live="polite">
+          <div class="domain" id="domainName">tradefada-smc.com</div>
+          <div class="score-row">
+            <span>Dashboard fit</span>
+            <div class="score-line"><div class="score-fill" id="fitFill"></div></div>
+            <strong id="fitScore">88%</strong>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="dashboard" aria-label="Market dashboard results">
+      <div class="panel">
+        <div class="panel-heading">
+          <div>
+            <h3>Interactive SMC Market Structure</h3>
+            <span id="chartSubtitle">EUR/USD • 1H • Major Currencies</span>
+          </div>
+          <div class="tabs" id="tabs"></div>
+        </div>
+
+        <div class="chart-shell">
+          <canvas id="marketCanvas" width="980" height="430" aria-label="Simulated market chart"></canvas>
+          <div class="chart-overlay">
+            <span class="price-label tp" id="tpLabel">TP 1.09480</span>
+            <span class="price-label entry" id="entryLabel">Entry 1.08850</span>
+            <span class="price-label sl" id="slLabel">SL 1.08590</span>
+          </div>
+        </div>
+
+        <div class="breakdown">
+          <div class="tile"><span>Trend Direction</span><strong id="trendTile">Bullish continuation</strong></div>
+          <div class="tile"><span>SMC Footprint</span><strong id="smcTile">Liquidity sweep</strong></div>
+          <div class="tile"><span>Stop Loss Zone</span><strong id="slTile">Below demand</strong></div>
+          <div class="tile"><span>Take Profit Target</span><strong id="tpTile">Buy-side liquidity</strong></div>
+        </div>
+      </div>
+
+      <aside class="side-stack">
+        <div class="panel">
+          <div class="panel-heading">
+            <div>
+              <h3>Signal Breakdown</h3>
+              <span>Bias engine updates with each market</span>
+            </div>
+          </div>
+          <div class="signal-card">
+            <div class="signal-top">
+              <h4 id="signalTitle">EUR/USD Setup</h4>
+              <span class="direction bullish" id="directionBadge">▲ BUY</span>
+            </div>
+            <div class="confidence-ring" id="confidenceRing">
+              <div class="confidence-inner"><strong id="confidenceText">74%</strong></div>
+            </div>
+            <div class="signal-list">
+              <div class="signal-row"><span>4H Bias</span><strong id="bias4h">Bullish</strong></div>
+              <div class="signal-row"><span>1H Bias</span><strong id="bias1h">Bullish pullback</strong></div>
+              <div class="signal-row"><span>15M Trigger</span><strong id="trigger15m">CHOCH + retest</strong></div>
+              <div class="signal-row"><span>Risk Allocation</span><strong id="riskAllocation">$50.00</strong></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-heading">
+            <div>
+              <h3>Active Watchlist</h3>
+              <span>Click any market to refresh setup</span>
+            </div>
+          </div>
+          <div class="watchlist" id="watchlist"></div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="panel market-section">
+      <div class="panel-heading">
+        <div>
+          <h3>All Market Sections</h3>
+          <span>Major currencies, indices, gold, and stocks in one dashboard</span>
+        </div>
+        <div class="category-tabs" id="categoryTabs"></div>
+      </div>
+      <div class="market-grid" id="marketGrid"></div>
+    </section>
+
+    <section class="panel setups-section">
+      <div class="panel-heading">
+        <div>
+          <h3>Ready Setups</h3>
+          <span>Prebuilt SMC setup cards with direction, entry, SL, TP, and risk-reward</span>
+        </div>
+      </div>
+      <div class="setup-grid" id="setupGrid"></div>
+    </section>
+
+    <footer>
+      Educational prototype only. This dashboard simulates technical analysis visuals and does not provide financial advice or live market data.
+    </footer>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite">Market setup updated.</div>
+
+  <script>
+    const state = {
+      symbol: 'EUR/USD',
+      trend: 'bullish',
+      confidence: 74,
+      fit: 88,
+      seed: 12,
+      data: []
+    };
+
+    const markets = {
+      currencies: [
+        { symbol: 'EUR/USD', label: 'Euro Dollar', change: 0.42, base: 1.0885 },
+        { symbol: 'GBP/USD', label: 'British Pound Dollar', change: -0.18, base: 1.2742 },
+        { symbol: 'USD/JPY', label: 'Dollar Yen', change: 0.31, base: 154.82 },
+        { symbol: 'USD/CAD', label: 'Dollar CAD', change: -0.22, base: 1.3678 },
+        { symbol: 'AUD/USD', label: 'Aussie Dollar', change: 0.27, base: 0.6634 },
+        { symbol: 'NZD/USD', label: 'Kiwi Dollar', change: 0.14, base: 0.6042 },
+        { symbol: 'EUR/JPY', label: 'Euro Yen', change: 0.56, base: 168.44 },
+        { symbol: 'GBP/JPY', label: 'Pound Yen', change: -0.35, base: 197.19 }
+      ],
+      indices: [
+        { symbol: 'NAS100', label: 'Nasdaq 100', change: 0.88, base: 18420 },
+        { symbol: 'US30', label: 'Dow Jones', change: -0.24, base: 38980 },
+        { symbol: 'SPX500', label: 'S&P 500', change: 0.35, base: 5238 },
+        { symbol: 'GER40', label: 'DAX Index', change: 0.16, base: 18355 },
+        { symbol: 'UK100', label: 'FTSE 100', change: -0.12, base: 8210 },
+        { symbol: 'JPN225', label: 'Nikkei 225', change: 0.44, base: 38420 }
+      ],
+      gold: [
+        { symbol: 'XAU/USD', label: 'Gold Spot', change: 0.76, base: 2368.4 },
+        { symbol: 'XAG/USD', label: 'Silver Spot', change: -0.21, base: 30.18 },
+        { symbol: 'GOLD FUT', label: 'Gold Futures', change: 0.58, base: 2376.9 }
+      ],
+      stocks: [
+        { symbol: 'AAPL', label: 'Apple Inc.', change: 0.52, base: 189.42 },
+        { symbol: 'NVDA', label: 'NVIDIA', change: 1.34, base: 912.6 },
+        { symbol: 'TSLA', label: 'Tesla', change: -0.92, base: 176.7 },
+        { symbol: 'MSFT', label: 'Microsoft', change: 0.27, base: 421.4 },
+        { symbol: 'AMZN', label: 'Amazon', change: 0.66, base: 182.3 },
+        { symbol: 'META', label: 'Meta Platforms', change: -0.31, base: 474.8 }
+      ]
+    };
+
+    const categoryNames = {
+      currencies: 'Major Currencies',
+      indices: 'Indices',
+      gold: 'Gold & Metals',
+      stocks: 'Stocks'
+    };
+
+    const elements = {
+      productUrl: document.getElementById('productUrl'),
+      urlError: document.getElementById('urlError'),
+      assetClass: document.getElementById('assetClass'),
+      timeframe: document.getElementById('timeframe'),
+      riskLevel: document.getElementById('riskLevel'),
+      capital: document.getElementById('capital'),
+      analyzeBtn: document.getElementById('analyzeBtn'),
+      domainName: document.getElementById('domainName'),
+      fitFill: document.getElementById('fitFill'),
+      fitScore: document.getElementById('fitScore'),
+      canvas: document.getElementById('marketCanvas'),
+      chartSubtitle: document.getElementById('chartSubtitle'),
+      tpLabel: document.getElementById('tpLabel'),
+      entryLabel: document.getElementById('entryLabel'),
+      slLabel: document.getElementById('slLabel'),
+      trendTile: document.getElementById('trendTile'),
+      smcTile: document.getElementById('smcTile'),
+      slTile: document.getElementById('slTile'),
+      tpTile: document.getElementById('tpTile'),
+      signalTitle: document.getElementById('signalTitle'),
+      directionBadge: document.getElementById('directionBadge'),
+      confidenceRing: document.getElementById('confidenceRing'),
+      confidenceText: document.getElementById('confidenceText'),
+      bias4h: document.getElementById('bias4h'),
+      bias1h: document.getElementById('bias1h'),
+      trigger15m: document.getElementById('trigger15m'),
+      riskAllocation: document.getElementById('riskAllocation'),
+      watchlist: document.getElementById('watchlist'),
+      tabs: document.getElementById('tabs'),
+      categoryTabs: document.getElementById('categoryTabs'),
+      marketGrid: document.getElementById('marketGrid'),
+      setupGrid: document.getElementById('setupGrid'),
+      toast: document.getElementById('toast'),
+      heroBias: document.getElementById('heroBias'),
+      heroRR: document.getElementById('heroRR'),
+      heroScore: document.getElementById('heroScore'),
+      scrollToChecker: document.getElementById('scrollToChecker'),
+      randomizeMarket: document.getElementById('randomizeMarket')
+    };
+
+    const ctx = elements.canvas.getContext('2d');
+
+    function validateUrl(value) {
+      try {
+        const url = new URL(value);
+        if (!['http:', 'https:'].includes(url.protocol)) return { valid: false, message: 'Enter a valid http or https URL.' };
+        return { valid: true, host: url.hostname.replace(/^www\./, '') };
+      } catch (error) {
+        return { valid: false, message: 'Enter a complete URL, for example https://tradefada.com.' };
+      }
+    }
+
+    function hashText(text) {
+      let hash = 0;
+      for (let i = 0; i < text.length; i++) {
+        hash = ((hash << 5) - hash) + text.charCodeAt(i);
+        hash |= 0;
+      }
+      return Math.abs(hash);
+    }
+
+    function seededNoise(index, seed) {
+      const x = Math.sin(index * 12.9898 + seed * 78.233) * 43758.5453;
+      return x - Math.floor(x);
+    }
+
+    function activeMarketList() { return markets[elements.assetClass.value] || markets.currencies; }
+    function allMarkets() { return Object.values(markets).flat(); }
+    function currentMarket() { return allMarkets().find(item => item.symbol === state.symbol) || activeMarketList()[0]; }
+    function currentCategoryForSymbol(symbol = state.symbol) {
+      return Object.keys(markets).find(key => markets[key].some(item => item.symbol === symbol)) || elements.assetClass.value;
+    }
+
+    function formatPrice(value, symbol = state.symbol) {
+      if (symbol.includes('/USD') && value < 10) return value.toFixed(5);
+      if (symbol.includes('JPY')) return value.toFixed(2);
+      if (value > 1000) return value.toLocaleString(undefined, { maximumFractionDigits: 1 });
+      if (value > 100) return value.toFixed(2);
+      return value.toFixed(4);
+    }
+
+    function generateData() {
+      const market = currentMarket();
+      const seed = state.seed + hashText(state.symbol) % 100;
+      const points = [];
+      const bullish = state.trend === 'bullish';
+      const direction = bullish ? 1 : -1;
+      let price = market.base * (1 + ((seed % 9) - 4) / 1000);
+      const volatility = market.base * (market.base > 1000 ? 0.0014 : 0.0028);
+
+      for (let i = 0; i < 78; i++) {
+        const cycle = Math.sin(i / 6) * volatility * 1.8;
+        const impulse = direction * i * volatility * 0.18;
+        const noise = (seededNoise(i, seed) - 0.5) * volatility * 2.5;
+        const sweep = i === 22 ? -direction * volatility * 7 : i === 55 ? direction * volatility * 6 : 0;
+        price += direction * volatility * 0.08 + noise * 0.22;
+        const close = price + cycle + impulse + sweep;
+        const open = points.length ? points[points.length - 1].close : close - direction * volatility;
+        const high = Math.max(open, close) + volatility * (0.8 + seededNoise(i + 4, seed) * 1.6);
+        const low = Math.min(open, close) - volatility * (0.8 + seededNoise(i + 8, seed) * 1.6);
+        points.push({ open, high, low, close });
+      }
+      state.data = points;
+    }
+
+    function drawChart() {
+      const canvas = elements.canvas;
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+      canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const width = rect.width;
+      const height = rect.height;
+      ctx.clearRect(0, 0, width, height);
+
+      const data = state.data;
+      const allPrices = data.flatMap(d => [d.high, d.low]);
+      const min = Math.min(...allPrices);
+      const max = Math.max(...allPrices);
+      const pad = (max - min) * 0.12;
+      const y = price => height - ((price - min + pad) / (max - min + pad * 2)) * height;
+      const candleWidth = Math.max(4, width / data.length * 0.55);
+      const spacing = width / data.length;
+
+      ctx.save();
+      ctx.globalAlpha = 0.18;
+      ctx.strokeStyle = '#35ffe4';
+      ctx.lineWidth = 1;
+      for (let i = 1; i < 5; i++) {
+        const yy = height * i / 5;
+        ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(width, yy); ctx.stroke();
+      }
+      ctx.restore();
+
+      const last = data[data.length - 1].close;
+      const first = data[0].close;
+      const bullish = last >= first;
+      const zoneTop = y(bullish ? max - (max - min) * 0.2 : min + (max - min) * 0.42);
+      const zoneBottom = y(bullish ? max - (max - min) * 0.36 : min + (max - min) * 0.25);
+
+      ctx.fillStyle = bullish ? 'rgba(72, 255, 155, 0.08)' : 'rgba(255, 75, 110, 0.08)';
+      ctx.strokeStyle = bullish ? 'rgba(72, 255, 155, 0.32)' : 'rgba(255, 75, 110, 0.32)';
+      roundRect(ctx, width * 0.52, Math.min(zoneTop, zoneBottom), width * 0.33, Math.abs(zoneBottom - zoneTop), 12, true, true);
+
+      ctx.fillStyle = 'rgba(157, 92, 255, 0.08)';
+      ctx.strokeStyle = 'rgba(157, 92, 255, 0.32)';
+      roundRect(ctx, width * 0.17, height * 0.18, width * 0.2, height * 0.12, 12, true, true);
+
+      data.forEach((d, i) => {
+        const x = i * spacing + spacing / 2;
+        const isUp = d.close >= d.open;
+        const color = isUp ? '#48ff9b' : '#ff4b6e';
+        ctx.strokeStyle = color; ctx.fillStyle = color; ctx.globalAlpha = 0.92; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.moveTo(x, y(d.high)); ctx.lineTo(x, y(d.low)); ctx.stroke();
+        const bodyY = Math.min(y(d.open), y(d.close));
+        const bodyH = Math.max(2, Math.abs(y(d.open) - y(d.close)));
+        roundRect(ctx, x - candleWidth / 2, bodyY, candleWidth, bodyH, 3, true, false);
+      });
+
+      drawDashedLine(y(last), '#35ffe4', 'ENTRY');
+      const spread = (max - min) * 0.26;
+      drawDashedLine(y(state.trend === 'bullish' ? last + spread : last - spread), '#48ff9b', 'TP');
+      drawDashedLine(y(state.trend === 'bullish' ? last - spread * 0.48 : last + spread * 0.48), '#ff4b6e', 'SL');
+
+      function drawDashedLine(yy, color, label) {
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.setLineDash([7, 8]);
+        ctx.globalAlpha = 0.65;
+        ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(width, yy); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = color;
+        ctx.font = '700 11px Inter, sans-serif';
+        ctx.fillText(label, 10, yy - 7);
+        ctx.restore();
+      }
+    }
+
+    function roundRect(context, x, y, width, height, radius, fill, stroke) {
+      const r = Math.min(radius, width / 2, height / 2);
+      context.beginPath();
+      context.moveTo(x + r, y);
+      context.arcTo(x + width, y, x + width, y + height, r);
+      context.arcTo(x + width, y + height, x, y + height, r);
+      context.arcTo(x, y + height, x, y, r);
+      context.arcTo(x, y, x + width, y, r);
+      context.closePath();
+      if (fill) context.fill();
+      if (stroke) context.stroke();
+    }
+
+    function setupForMarket(market) {
+      const urlSeed = hashText((elements.productUrl.value || '') + market.symbol + elements.timeframe.value);
+      const bullish = market.change + ((urlSeed % 9) - 4) / 10 >= 0;
+      const confidence = Math.max(52, Math.min(94, 60 + (urlSeed % 28) + (market.change >= 0 ? 3 : -2)));
+      const vol = market.base * (market.base > 1000 ? 0.004 : 0.006);
+      const entry = market.base + (bullish ? vol * 0.25 : -vol * 0.25);
+      const sl = bullish ? entry - vol * 0.95 : entry + vol * 0.95;
+      const tp = bullish ? entry + vol * 2.35 : entry - vol * 2.35;
+      const rr = Math.abs(tp - entry) / Math.abs(entry - sl);
+      return { bullish, confidence, entry, sl, tp, rr };
+    }
+
+    function updateTabs() {
+      const preferred = activeMarketList().slice(0, 6);
+      if (!preferred.some(item => item.symbol === state.symbol)) state.symbol = preferred[0].symbol;
+      elements.tabs.innerHTML = preferred.map(item => `<button class="tab ${item.symbol === state.symbol ? 'active' : ''}" data-symbol="${item.symbol}">${item.symbol}</button>`).join('');
+    }
+
+    function updateWatchlist() {
+      elements.watchlist.innerHTML = activeMarketList().map(item => `
+        <div class="watch-item ${item.symbol === state.symbol ? 'active' : ''}" data-symbol="${item.symbol}" role="button" tabindex="0">
+          <div><b>${item.symbol}</b><small>${item.label}</small></div>
+          <span class="change ${item.change >= 0 ? 'up' : 'down'}">${item.change >= 0 ? '+' : ''}${item.change.toFixed(2)}%</span>
+        </div>`).join('');
+    }
+
+    function updateCategoryTabs() {
+      elements.categoryTabs.innerHTML = Object.keys(markets).map(key => `<button class="category-tab ${elements.assetClass.value === key ? 'active' : ''}" data-category="${key}">${categoryNames[key]}</button>`).join('');
+    }
+
+    function updateMarketGrid() {
+      const category = elements.assetClass.value;
+      elements.marketGrid.innerHTML = markets[category].map(item => {
+        const setup = setupForMarket(item);
+        return `
+          <article class="market-card ${item.symbol === state.symbol ? 'active' : ''}" data-symbol="${item.symbol}">
+            <div class="market-card-top">
+              <div><h4>${item.symbol}</h4><p>${item.label}</p></div>
+              <span class="change ${item.change >= 0 ? 'up' : 'down'}">${item.change >= 0 ? '+' : ''}${item.change.toFixed(2)}%</span>
+            </div>
+            <div class="market-price">${formatPrice(item.base, item.symbol)}</div>
+            <span class="bias-pill ${setup.bullish ? 'bullish' : 'bearish'}">${setup.bullish ? 'BUY BIAS' : 'SELL BIAS'} • ${setup.confidence}%</span>
+          </article>`;
+      }).join('');
+    }
+
+    function updateSetupGrid() {
+      const candidates = allMarkets()
+        .map(item => ({ item, setup: setupForMarket(item) }))
+        .sort((a, b) => b.setup.confidence - a.setup.confidence)
+        .slice(0, 6);
+
+      elements.setupGrid.innerHTML = candidates.map(({ item, setup }) => `
+        <article class="setup-card" data-symbol="${item.symbol}">
+          <span class="setup-pill ${setup.bullish ? 'buy' : 'sell'}">${setup.bullish ? 'BUY SETUP' : 'SELL SETUP'} • ${setup.confidence}%</span>
+          <h4>${item.symbol}</h4>
+          <p>${item.label} — ${setup.bullish ? 'Liquidity sweep into demand with bullish confirmation.' : 'Buy-side liquidity sweep into supply with bearish confirmation.'}</p>
+          <div class="setup-meta">
+            <div><span>Entry</span><strong>${formatPrice(setup.entry, item.symbol)}</strong></div>
+            <div><span>SL</span><strong>${formatPrice(setup.sl, item.symbol)}</strong></div>
+            <div><span>TP</span><strong>${formatPrice(setup.tp, item.symbol)}</strong></div>
+          </div>
+          <div class="setup-meta">
+            <div><span>RR</span><strong>1:${setup.rr.toFixed(1)}</strong></div>
+            <div><span>TF</span><strong>${elements.timeframe.value.toUpperCase()}</strong></div>
+            <div><span>Model</span><strong>SMC</strong></div>
+          </div>
+        </article>`).join('');
+    }
+
+    function calculateSignal() {
+      const validation = validateUrl(elements.productUrl.value.trim());
+      const capital = Number(elements.capital.value);
+      const risk = elements.riskLevel.value;
+      const tf = elements.timeframe.value;
+      const market = currentMarket();
+      const urlSeed = validation.valid ? hashText(validation.host) : 38;
+      const riskMap = { conservative: 0.5, balanced: 1, aggressive: 2 };
+      const tfBoost = { '15m': -4, '1h': 3, '4h': 6, '1d': 1 };
+      state.seed = (urlSeed % 97) + Math.floor(capital / 200);
+      state.confidence = Math.max(48, Math.min(94, 62 + (urlSeed % 21) + (market.change >= 0 ? 4 : -3) + (tfBoost[tf] || 0)));
+      state.fit = Math.max(42, Math.min(98, 70 + (urlSeed % 24) - (validation.valid ? 0 : 20)));
+      state.trend = market.change + ((urlSeed % 9) - 4) / 10 >= 0 ? 'bullish' : 'bearish';
+      const riskAmount = Math.max(0, capital * ((riskMap[risk] || 1) / 100));
+      return { validation, riskAmount };
+    }
+
+    function updateUI(showToast = false) {
+      const { validation, riskAmount } = calculateSignal();
+      const market = currentMarket();
+      const isBullish = state.trend === 'bullish';
+
+      if (validation.valid) { elements.urlError.textContent = ''; elements.domainName.textContent = validation.host; }
+      else { elements.urlError.textContent = validation.message; elements.domainName.textContent = 'Waiting for a valid product URL'; }
+
+      updateTabs();
+      updateWatchlist();
+      updateCategoryTabs();
+      updateMarketGrid();
+      updateSetupGrid();
+      generateData();
+
+      const last = state.data[state.data.length - 1].close;
+      const prices = state.data.flatMap(d => [d.high, d.low]);
+      const range = Math.max(...prices) - Math.min(...prices);
+      const entry = last;
+      const tp = isBullish ? entry + range * 0.34 : entry - range * 0.34;
+      const sl = isBullish ? entry - range * 0.16 : entry + range * 0.16;
+      const rr = Math.abs(tp - entry) / Math.abs(entry - sl);
+      const category = currentCategoryForSymbol();
+
+      elements.fitFill.style.width = state.fit + '%';
+      elements.fitScore.textContent = state.fit + '%';
+      elements.chartSubtitle.textContent = `${state.symbol} • ${elements.timeframe.value.toUpperCase()} • ${categoryNames[category]}`;
+      elements.tpLabel.textContent = `TP ${formatPrice(tp)}`;
+      elements.entryLabel.textContent = `Entry ${formatPrice(entry)}`;
+      elements.slLabel.textContent = `SL ${formatPrice(sl)}`;
+      elements.trendTile.textContent = isBullish ? 'Bullish continuation' : 'Bearish distribution';
+      elements.smcTile.textContent = isBullish ? 'Sell-side sweep → demand' : 'Buy-side sweep → supply';
+      elements.slTile.textContent = isBullish ? 'Below demand zone' : 'Above supply zone';
+      elements.tpTile.textContent = isBullish ? 'Buy-side liquidity' : 'Sell-side liquidity';
+      elements.signalTitle.textContent = `${state.symbol} Ready Setup`;
+      elements.directionBadge.textContent = isBullish ? '▲ BUY' : '▼ SELL';
+      elements.directionBadge.className = `direction ${isBullish ? 'bullish' : 'bearish'}`;
+      const degrees = Math.round(state.confidence * 3.6);
+      elements.confidenceRing.style.background = `conic-gradient(${isBullish ? '#35ffe4' : '#ff4b6e'} 0deg, #9d5cff ${degrees}deg, rgba(255,255,255,0.08) ${degrees}deg 360deg)`;
+      elements.confidenceText.textContent = state.confidence + '%';
+      elements.bias4h.textContent = isBullish ? 'Bullish' : 'Bearish';
+      elements.bias1h.textContent = isBullish ? 'Bullish pullback' : 'Bearish retest';
+      elements.trigger15m.textContent = isBullish ? 'CHOCH + demand retest' : 'BOS + supply retest';
+      elements.riskAllocation.textContent = '$' + riskAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      elements.heroBias.textContent = isBullish ? 'Bullish' : 'Bearish';
+      elements.heroRR.textContent = `1:${rr.toFixed(1)}`;
+      elements.heroScore.textContent = state.confidence + '%';
+      drawChart();
+      if (showToast) showToastMessage(`${state.symbol} ready setup refreshed with ${state.confidence}% confidence.`);
+    }
+
+    function showToastMessage(message) {
+      elements.toast.textContent = message;
+      elements.toast.classList.add('show');
+      window.clearTimeout(showToastMessage.timer);
+      showToastMessage.timer = window.setTimeout(() => elements.toast.classList.remove('show'), 2600);
+    }
+
+    function selectSymbol(symbol) {
+      state.symbol = symbol;
+      const category = currentCategoryForSymbol(symbol);
+      elements.assetClass.value = category;
+      updateUI(true);
+    }
+
+    elements.analyzeBtn.addEventListener('click', () => updateUI(true));
+    ['input', 'change'].forEach(eventName => {
+      elements.productUrl.addEventListener(eventName, () => updateUI(false));
+      elements.capital.addEventListener(eventName, () => updateUI(false));
+      elements.assetClass.addEventListener(eventName, () => updateUI(true));
+      elements.timeframe.addEventListener(eventName, () => updateUI(false));
+      elements.riskLevel.addEventListener(eventName, () => updateUI(false));
+    });
+    elements.tabs.addEventListener('click', event => { const button = event.target.closest('[data-symbol]'); if (button) selectSymbol(button.dataset.symbol); });
+    elements.watchlist.addEventListener('click', event => { const item = event.target.closest('[data-symbol]'); if (item) selectSymbol(item.dataset.symbol); });
+    elements.marketGrid.addEventListener('click', event => { const item = event.target.closest('[data-symbol]'); if (item) selectSymbol(item.dataset.symbol); });
+    elements.setupGrid.addEventListener('click', event => { const item = event.target.closest('[data-symbol]'); if (item) selectSymbol(item.dataset.symbol); });
+    elements.categoryTabs.addEventListener('click', event => {
+      const tab = event.target.closest('[data-category]');
+      if (!tab) return;
+      elements.assetClass.value = tab.dataset.category;
+      state.symbol = activeMarketList()[0].symbol;
+      updateUI(true);
+    });
+    elements.scrollToChecker.addEventListener('click', () => document.getElementById('checker').scrollIntoView({ behavior: 'smooth', block: 'center' }));
+    elements.randomizeMarket.addEventListener('click', () => {
+      const classes = Object.keys(markets);
+      const randomClass = classes[Math.floor(Math.random() * classes.length)];
+      elements.assetClass.value = randomClass;
+      const list = markets[randomClass];
+      state.symbol = list[Math.floor(Math.random() * list.length)].symbol;
+      elements.productUrl.value = ['https://tradefada-smc.com', 'https://tradefada-terminal.com', 'https://tradefada-signals.com'][Math.floor(Math.random() * 3)];
+      elements.timeframe.value = ['15m', '1h', '4h', '1d'][Math.floor(Math.random() * 4)];
+      updateUI(true);
+    });
+    window.addEventListener('resize', () => drawChart());
+    updateUI(false);
+  </script>
+</body>
+</html>
