@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Corporate Ad Studio</title>
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-2: #171c28;
+    --border: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.16);
+    --text: #eef1f6;
+    --muted: #8a93a6;
+    --accent: #3d7bff;
+    --accent-2: #2f6fed;
+    --ok: #35c98f;
+    --radius: 14px;
+    --radius-sm: 9px;
+    --shadow: 0 20px 60px rgba(0,0,0,0.45);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 12% 0%, rgba(61,123,255,0.14), transparent 32%),
+      radial-gradient(circle at 92% 12%, rgba(53,201,143,0.10), transparent 32%),
+      linear-gradient(180deg, #0a0d13 0%, #0b0e14 100%);
+    color: var(--text);
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: rgba(11, 14, 20, 0.86);
+    backdrop-filter: blur(10px);
+    z-index: 20;
+  }
+
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand-mark {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--ok));
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 15px; color: #08101f;
+    box-shadow: 0 6px 18px rgba(61,123,255,0.35);
+    flex-shrink: 0;
+  }
+  .brand-text h1 { font-size: 16px; margin: 0; letter-spacing: 0.2px; }
+  .brand-text p { font-size: 12px; margin: 2px 0 0; color: var(--muted); }
+
+  .top-actions { display: flex; gap: 10px; }
+
+  button {
+    font-family: inherit;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-strong);
+    background: var(--panel-2);
+    color: var(--text);
+    padding: 9px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    transition: 140ms ease;
+  }
+  button:hover { border-color: var(--accent); background: #1b2231; }
+  button.primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    border-color: transparent;
+    color: white;
+    box-shadow: 0 8px 22px rgba(61,123,255,0.35);
+  }
+  button.primary:hover { filter: brightness(1.08); }
+  button.ghost { background: transparent; }
+  button:active { transform: translateY(1px); }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 0;
+    min-height: calc(100vh - 77px);
+  }
+
+  aside {
+    border-right: 1px solid var(--border);
+    padding: 20px;
+    overflow-y: auto;
+    max-height: calc(100vh - 77px);
+  }
+
+  section.group {
+    margin-bottom: 22px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+  section.group h2 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin: 0 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  section.group h2::before {
+    content: "";
+    width: 6px; height: 6px; border-radius: 2px;
+    background: var(--accent);
+    display: inline-block;
+  }
+
+  label.field { display: block; margin-bottom: 12px; }
+  label.field:last-child { margin-bottom: 0; }
+  label.field span.lbl {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  input[type="text"], textarea, select {
+    width: 100%;
+    background: var(--panel-2);
+    border: 1px solid var(--border-strong);
+    color: var(--text);
+    border-radius: var(--radius-sm);
+    padding: 9px 10px;
+    font-size: 13px;
+    font-family: inherit;
+    resize: vertical;
+  }
+  input[type="text"]:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  textarea { min-height: 56px; }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .file-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: space-between;
+  }
+  .file-btn input[type="file"] { display: none; }
+  .file-name { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
+
+  .swatches { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .swatch {
+    height: 34px;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    position: relative;
+  }
+  .swatch.active { border-color: var(--text); box-shadow: 0 0 0 2px var(--accent); }
+
+  .layout-picks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .layout-pick {
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    background: var(--panel-2);
+    padding: 8px 6px 6px;
+    cursor: pointer;
+    text-align: center;
+  }
+  .layout-pick.active { border-color: var(--accent); background: #1b2231; box-shadow: 0 0 0 1px var(--accent); }
+  .layout-pick svg { width: 100%; height: 34px; display: block; margin-bottom: 4px; }
+  .layout-pick span { font-size: 10px; color: var(--muted); }
+
+  .format-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .format-pick {
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    background: var(--panel-2);
+    padding: 8px 10px;
+    cursor: pointer;
+    text-align: left;
+  }
+  .format-pick.active { border-color: var(--accent); background: #1b2231; box-shadow: 0 0 0 1px var(--accent); }
+  .format-pick .fname { font-size: 12px; font-weight: 600; }
+  .format-pick .fdim { font-size: 10.5px; color: var(--muted); margin-top: 2px; }
+
+  input[type="color"] {
+    width: 40px; height: 32px;
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    background: var(--panel-2);
+    padding: 2px;
+    cursor: pointer;
+  }
+  .color-field { display: flex; align-items: center; gap: 10px; }
+  .color-field .hex { font-size: 12px; color: var(--muted); font-family: ui-monospace, Menlo, monospace; }
+
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; }
+  .switch { position: relative; width: 38px; height: 22px; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute; cursor: pointer; inset: 0;
+    background: var(--panel-2); border: 1px solid var(--border-strong);
+    border-radius: 999px; transition: 140ms;
+  }
+  .slider::before {
+    content: ""; position: absolute; height: 16px; width: 16px; left: 2px; top: 2px;
+    background: var(--muted); border-radius: 50%; transition: 140ms;
+  }
+  .switch input:checked + .slider { background: var(--accent); border-color: var(--accent); }
+  .switch input:checked + .slider::before { transform: translateX(16px); background: white; }
+
+  main.stage {
+    padding: 26px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .stage-bar {
+    width: 100%;
+    max-width: 1040px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .stage-bar .info { font-size: 12.5px; color: var(--muted); }
+  .stage-bar .info b { color: var(--text); }
+
+  .canvas-wrap {
+    background:
+      linear-gradient(45deg, #171b24 25%, transparent 25%),
+      linear-gradient(-45deg, #171b24 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #171b24 75%),
+      linear-gradient(-45deg, transparent 75%, #171b24 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    background-color: #0f1219;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 1040px;
+    width: 100%;
+  }
+
+  #canvas {
+    max-width: 100%;
+    max-height: 70vh;
+    border-radius: 6px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    background: white;
+  }
+
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 11.5px;
+    padding: 6px 0 24px;
+  }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    aside { max-height: none; border-right: none; border-bottom: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-mark">CA</div>
+    <div class="brand-text">
+      <h1>Corporate Ad Studio</h1>
+      <p>Design on-brand ads in minutes &mdash; no upload required</p>
+    </div>
+  </div>
+  <div class="top-actions">
+    <button class="ghost" id="randomizeBtn" type="button">Shuffle style</button>
+    <button class="ghost" id="resetBtn" type="button">Reset</button>
+    <button class="primary" id="downloadBtn" type="button">Download PNG</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside>
+
+    <section class="group">
+      <h2>Content</h2>
+      <label class="field">
+        <span class="lbl">Company / Brand name</span>
+        <input type="text" id="companyName" value="Northbridge Capital" maxlength="40" />
+      </label>
+      <label class="field">
+        <span class="lbl">Headline</span>
+        <textarea id="headline" maxlength="90">Grow Your Business With Confidence</textarea>
+      </label>
+      <label class="field">
+        <span class="lbl">Subheadline</span>
+        <textarea id="subheadline" maxlength="140">Strategic finance, marketing, and operations support for ambitious companies.</textarea>
+      </label>
+      <div class="row2">
+        <label class="field">
+          <span class="lbl">CTA button text</span>
+          <input type="text" id="ctaText" value="Get Started" maxlength="24" />
+        </label>
+        <label class="field">
+          <span class="lbl">Footer tagline</span>
+          <input type="text" id="footerText" value="www.northbridgecapital.com" maxlength="48" />
+        </label>
+      </div>
+    </section>
+
+    <section class="group">
+      <h2>Branding</h2>
+      <label class="field file-btn" for="logoUpload">
+        <span class="lbl" style="margin:0;">Logo (optional)</span>
+        <span style="display:flex; align-items:center; gap:8px;">
+          <span class="file-name" id="logoFileName">None</span>
+          <button type="button" onclick="document.getElementById('logoUpload').click()">Upload</button>
+        </span>
+        <input type="file" id="logoUpload" accept="image/*" />
+      </label>
+      <label class="field file-btn" for="bgUpload" style="margin-top:12px;">
+        <span class="lbl" style="margin:0;">Background image (optional)</span>
+        <span style="display:flex; align-items:center; gap:8px;">
+          <span class="file-name" id="bgFileName">None</span>
+          <button type="button" onclick="document.getElementById('bgUpload').click()">Upload</button>
+        </span>
+        <input type="file" id="bgUpload" accept="image/*" />
+      </label>
+      <label class="field toggle-row" style="margin-top:12px;">
+        <span class="lbl" style="margin:0;">Darken background image for contrast</span>
+        <span class="switch"><input type="checkbox" id="overlayToggle" checked /><span class="slider"></span></span>
+      </label>
+      <button type="button" class="ghost" id="clearImagesBtn" style="margin-top:10px; width:100%;">Clear uploaded images</button>
+    </section>
+
+    <section class="group">
+      <h2>Layout</h2>
+      <div class="layout-picks" id="layoutPicks">
+        <div class="layout-pick active" data-layout="centered">
+          <svg viewBox="0 0 60 34"><rect width="60" height="34" rx="3" fill="#232838"/><rect x="14" y="10" width="32" height="4" rx="1" fill="#3d7bff"/><rect x="18" y="17" width="24" height="3" rx="1" fill="#5b6579"/><rect x="22" y="24" width="16" height="5" rx="2" fill="#35c98f"/></svg>
+          <span>Centered</span>
+        </div>
+        <div class="layout-pick" data-layout="split">
+          <svg viewBox="0 0 60 34"><rect width="30" height="34" rx="3" fill="#232838"/><rect x="30" width="30" height="34" rx="3" fill="#3d7bff" opacity="0.5"/><rect x="6" y="10" width="18" height="4" rx="1" fill="#3d7bff"/><rect x="6" y="17" width="18" height="3" rx="1" fill="#5b6579"/><rect x="6" y="24" width="12" height="5" rx="2" fill="#35c98f"/></svg>
+          <span>Split</span>
+        </div>
+        <div class="layout-pick" data-layout="bottom">
+          <svg viewBox="0 0 60 34"><rect width="60" height="34" rx="3" fill="#232838"/><rect y="20" width="60" height="14" rx="0" fill="#0b0e14" opacity="0.7"/><rect x="6" y="23" width="30" height="4" rx="1" fill="#3d7bff"/><rect x="6" y="29" width="16" height="4" rx="2" fill="#35c98f"/></svg>
+          <span>Bottom bar</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="group">
+      <h2>Theme</h2>
+      <div class="swatches" id="themeSwatches"></div>
+      <div class="row2" style="margin-top:14px;">
+        <label class="field">
+          <span class="lbl">Custom accent</span>
+          <div class="color-field">
+            <input type="color" id="accentColor" value="#3d7bff" />
+            <span class="hex" id="accentHex">#3d7bff</span>
+          </div>
+        </label>
+        <label class="field">
+          <span class="lbl">Font style</span>
+          <select id="fontSelect">
+            <option value="sans">Modern Sans</option>
+            <option value="serif">Classic Serif</option>
+            <option value="condensed">Bold Condensed</option>
+            <option value="mono">Technical Mono</option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <section class="group">
+      <h2>Format</h2>
+      <div class="format-grid" id="formatGrid"></div>
+    </section>
+
+  </aside>
+
+  <main class="stage">
+    <div class="stage-bar">
+      <div class="info">Format: <b id="formatLabel">LinkedIn Post</b> &middot; <b id="dimsLabel">1200 &times; 627</b> px</div>
+      <div class="info">Live preview &mdash; updates as you type</div>
+    </div>
+    <div class="canvas-wrap">
+      <canvas id="canvas" width="1200" height="627"></canvas>
+    </div>
+  </main>
+</div>
+
+<footer>Corporate Ad Studio &mdash; runs entirely in your browser. No files are uploaded anywhere.</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
+
+  const FORMATS = [
+    { id: "linkedin", name: "LinkedIn Post", w: 1200, h: 627 },
+    { id: "square", name: "Instagram Square", w: 1080, h: 1080 },
+    { id: "fb", name: "Facebook / X Ad", w: 1200, h: 628 },
+    { id: "story", name: "Story / Reel", w: 1080, h: 1920 },
+    { id: "poster", name: "Flyer / Poster", w: 1080, h: 1350 },
+    { id: "banner", name: "Web Banner", w: 1200, h: 300 }
+  ];
+
+  const THEMES = [
+    { name: "Corporate Blue", bg1: "#0d1a3a", bg2: "#122a63", accent: "#3d7bff", text: "#ffffff", muted: "#c7d3f0" },
+    { name: "Executive Slate", bg1: "#14171c", bg2: "#20242c", accent: "#e0b15c", text: "#ffffff", muted: "#c7cbd3" },
+    { name: "Emerald Growth", bg1: "#0c2620", bg2: "#123a30", accent: "#35c98f", text: "#ffffff", muted: "#c6e6da" },
+    { name: "Crimson Bold", bg1: "#2a0d14", bg2: "#3d121b", accent: "#ff4f5e", text: "#ffffff", muted: "#f0c9cd" },
+    { name: "Minimal Mono", bg1: "#f4f5f7", bg2: "#e7e9ee", accent: "#111318", text: "#111318", muted: "#4a4f5c" },
+    { name: "Violet Signal", bg1: "#170c2e", bg2: "#241148", accent: "#9d6cff", text: "#ffffff", muted: "#d8c9f5" },
+    { name: "Amber Energy", bg1: "#241a05", bg2: "#3a2a08", accent: "#ffb020", text: "#ffffff", muted: "#f2ddb3" },
+    { name: "Ocean Trust", bg1: "#04222c", bg2: "#07394a", accent: "#39c6e0", text: "#ffffff", muted: "#c3ebf2" },
+    { name: "Clean White", bg1: "#ffffff", bg2: "#f0f2f6", accent: "#2f6fed", text: "#10131a", muted: "#5b6577" },
+    { name: "Graphite Steel", bg1: "#1b1f27", bg2: "#2a2f3a", accent: "#7d8aa3", text: "#ffffff", muted: "#b7bfcf" }
+  ];
+
+  const FONTS = {
+    sans: { head: "800 SIZEpx -apple-system, Helvetica, Arial, sans-serif", body: "500 SIZEpx -apple-system, Helvetica, Arial, sans-serif" },
+    serif: { head: "700 SIZEpx Georgia, 'Times New Roman', serif", body: "400 SIZEpx Georgia, 'Times New Roman', serif" },
+    condensed: { head: "900 SIZEpx Impact, 'Arial Narrow', sans-serif", body: "600 SIZEpx 'Arial Narrow', Arial, sans-serif" },
+    mono: { head: "700 SIZEpx 'Courier New', ui-monospace, monospace", body: "500 SIZEpx 'Courier New', ui-monospace, monospace" }
+  };
+
+  const state = {
+    companyName: "Northbridge Capital",
+    headline: "Grow Your Business With Confidence",
+    subheadline: "Strategic finance, marketing, and operations support for ambitious companies.",
+    ctaText: "Get Started",
+    footerText: "www.northbridgecapital.com",
+    logoImg: null,
+    logoFileName: "None",
+    bgImg: null,
+    bgFileName: "None",
+    overlay: true,
+    layout: "centered",
+    themeIndex: 0,
+    accent: THEMES[0].accent,
+    font: "sans",
+    format: FORMATS[0]
+  };
+
+  function currentTheme() {
+    const base = THEMES[state.themeIndex];
+    return Object.assign({}, base, { accent: state.accent });
+  }
+
+  function font(kind, size) {
+    return FONTS[state.font][kind].replace("SIZE", Math.round(size));
+  }
+
+  function roundRect(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.arcTo(x + w, y, x + w, y + h, r);
+    c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r);
+    c.arcTo(x, y, x + w, y, r);
+    c.closePath();
+  }
+
+  function wrapText(c, text, x, y, maxWidth, lineHeight, align) {
+    const words = (text || "").split(/\s+/).filter(Boolean);
+    let line = "";
+    const lines = [];
+    for (let i = 0; i < words.length; i++) {
+      const test = line ? line + " " + words[i] : words[i];
+      if (c.measureText(test).width > maxWidth && line) {
+        lines.push(line);
+        line = words[i];
+      } else {
+        line = test;
+      }
+    }
+    if (line) lines.push(line);
+
+    const startY = y;
+    lines.forEach((l, i) => {
+      let dx = x;
+      c.textAlign = align;
+      c.fillText(l, dx, startY + i * lineHeight);
+    });
+    return lines.length * lineHeight;
+  }
+
+  function drawLogo(c, img, x, y, maxW, maxH) {
+    if (!img) return;
+    const ratio = Math.min(maxW / img.width, maxH / img.height);
+    const w = img.width * ratio;
+    const h = img.height * ratio;
+    c.drawImage(img, x, y, w, h);
+    return { w, h };
+  }
+
+  function drawBackground(c, w, h, theme) {
+    if (state.bgImg) {
+      const img = state.bgImg;
+      const scale = Math.max(w / img.width, h / img.height);
+      const iw = img.width * scale, ih = img.height * scale;
+      const ix = (w - iw) / 2, iy = (h - ih) / 2;
+      c.drawImage(img, ix, iy, iw, ih);
+      if (state.overlay) {
+        c.fillStyle = "rgba(6, 9, 14, 0.55)";
+        c.fillRect(0, 0, w, h);
+      }
+    } else {
+      const grad = c.createLinearGradient(0, 0, w, h);
+      grad.addColorStop(0, theme.bg1);
+      grad.addColorStop(1, theme.bg2);
+      c.fillStyle = grad;
+      c.fillRect(0, 0, w, h);
+
+      c.save();
+      c.globalAlpha = 0.10;
+      c.fillStyle = theme.accent;
+      c.beginPath();
+      c.arc(w * 0.92, h * 0.05, Math.min(w, h) * 0.35, 0, Math.PI * 2);
+      c.fill();
+      c.beginPath();
+      c.arc(w * 0.06, h * 0.98, Math.min(w, h) * 0.28, 0, Math.PI * 2);
+      c.fill();
+      c.restore();
+    }
+  }
+
+  function drawCTA(c, text, cx, topY, theme, align) {
+    c.font = font("body", Math.max(canvas.height * 0.032, 16));
+    const padX = canvas.width * 0.022, padY = canvas.height * 0.018;
+    const tw = c.measureText(text).width;
+    const bw = tw + padX * 2;
+    const bh = Math.max(canvas.height * 0.06, 34) + padY;
+    let bx;
+    if (align === "left") bx = cx;
+    else if (align === "right") bx = cx - bw;
+    else bx = cx - bw / 2;
+
+    c.fillStyle = theme.accent;
+    roundRect(c, bx, topY, bw, bh, bh / 2);
+    c.fill();
+
+    const isLightAccent = luminance(theme.accent) > 0.6;
+    c.fillStyle = isLightAccent ? "#10131a" : "#ffffff";
+    c.textBaseline = "middle";
+    c.textAlign = "center";
+    c.fillText(text, bx + bw / 2, topY + bh / 2 + 1);
+    c.textBaseline = "alphabetic";
+    return bh;
+  }
+
+  function luminance(hex) {
+    const h = hex.replace("#", "");
+    const r = parseInt(h.substring(0, 2), 16) / 255;
+    const g = parseInt(h.substring(2, 4), 16) / 255;
+    const b = parseInt(h.substring(4, 6), 16) / 255;
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
+
+  function drawBadge(c, text, x, y, theme, align) {
+    if (!text) return 0;
+    c.font = font("body", Math.max(canvas.height * 0.026, 13));
+    c.fillStyle = theme.muted;
+    c.textAlign = align;
+    c.fillText(text.toUpperCase(), x, y);
+    return canvas.height * 0.03;
+  }
+
+  function layoutCentered(c, w, h, theme) {
+    drawBackground(c, w, h, theme);
+    const cx = w / 2;
+    let y = h * 0.16;
+
+    if (state.logoImg) {
+      const maxH = h * 0.09, maxW = w * 0.28;
+      const ratio = Math.min(maxW / state.logoImg.width, maxH / state.logoImg.height);
+      const lw = state.logoImg.width * ratio, lh = state.logoImg.height * ratio;
+      c.drawImage(state.logoImg, cx - lw / 2, y, lw, lh);
+      y += lh + h * 0.035;
+    } else if (state.companyName) {
+      c.font = font("body", Math.max(h * 0.032, 15));
+      c.fillStyle = theme.accent;
+      c.textAlign = "center";
+      c.fillText(state.companyName.toUpperCase(), cx, y + h * 0.02);
+      y += h * 0.075;
+    }
+
+    c.fillStyle = theme.text;
+    c.font = font("head", Math.max(h * 0.085, 30));
+    y += wrapText(c, state.headline, cx, y + h * 0.02, w * 0.78, h * 0.10, "center");
+    y += h * 0.025;
+
+    c.fillStyle = theme.muted;
+    c.font = font("body", Math.max(h * 0.036, 16));
+    y += wrapText(c, state.subheadline, cx, y, w * 0.62, h * 0.05, "center");
+    y += h * 0.045;
+
+    if (state.ctaText) {
+      drawCTA(c, state.ctaText, cx, y, theme, "center");
+    }
+
+    if (state.footerText) {
+      c.font = font("body", Math.max(h * 0.022, 11));
+      c.fillStyle = theme.muted;
+      c.textAlign = "center";
+      c.fillText(state.footerText, cx, h * 0.955);
+    }
+  }
+
+  function layoutSplit(c, w, h, theme) {
+    const grad = c.createLinearGradient(0, 0, w, h);
+    grad.addColorStop(0, theme.bg1);
+    grad.addColorStop(1, theme.bg2);
+    c.fillStyle = grad;
+    c.fillRect(0, 0, w, h);
+
+    const splitX = w * 0.56;
+    if (state.bgImg) {
+      const img = state.bgImg;
+      const rw = w - splitX, rh = h;
+      const scale = Math.max(rw / img.width, rh / img.height);
+      const iw = img.width * scale, ih = img.height * scale;
+      c.save();
+      c.beginPath();
+      c.rect(splitX, 0, rw, rh);
+      c.clip();
+      c.drawImage(img, splitX + (rw - iw) / 2, (rh - ih) / 2, iw, ih);
+      if (state.overlay) {
+        c.fillStyle = "rgba(6,9,14,0.28)";
+        c.fillRect(splitX, 0, rw, rh);
+      }
+      c.restore();
+    } else {
+      c.save();
+      c.globalAlpha = 0.9;
+      const grad2 = c.createLinearGradient(splitX, 0, w, h);
+      grad2.addColorStop(0, theme.accent);
+      grad2.addColorStop(1, theme.bg2);
+      c.fillStyle = grad2;
+      c.fillRect(splitX, 0, w - splitX, h);
+      c.restore();
+    }
+
+    const pad = w * 0.06;
+    let y = h * 0.16;
+    const maxW = splitX - pad * 1.3;
+
+    if (state.logoImg) {
+      const maxH = h * 0.09, maxLW = maxW * 0.6;
+      const ratio = Math.min(maxLW / state.logoImg.width, maxH / state.logoImg.height);
+      const lw = state.logoImg.width * ratio, lh = state.logoImg.height * ratio;
+      c.drawImage(state.logoImg, pad, y, lw, lh);
+      y += lh + h * 0.04;
+    } else if (state.companyName) {
+      c.font = font("body", Math.max(h * 0.03, 14));
+      c.fillStyle = theme.accent;
+      c.textAlign = "left";
+      c.fillText(state.companyName.toUpperCase(), pad, y);
+      y += h * 0.07;
+    }
+
+    c.fillStyle = theme.text;
+    c.font = font("head", Math.max(h * 0.072, 26));
+    y += wrapText(c, state.headline, pad, y + h * 0.02, maxW, h * 0.086, "left");
+    y += h * 0.02;
+
+    c.fillStyle = theme.muted;
+    c.font = font("body", Math.max(h * 0.03, 14));
+    y += wrapText(c, state.subheadline, pad, y, maxW, h * 0.044, "left");
+    y += h * 0.04;
+
+    if (state.ctaText) {
+      drawCTA(c, state.ctaText, pad, y, theme, "left");
+    }
+
+    if (state.footerText) {
+      c.font = font("body", Math.max(h * 0.02, 10.5));
+      c.fillStyle = theme.muted;
+      c.textAlign = "left";
+      c.fillText(state.footerText, pad, h * 0.955);
+    }
+  }
+
+  function layoutBottom(c, w, h, theme) {
+    drawBackground(c, w, h, theme);
+
+    const barH = h * 0.42;
+    const grad = c.createLinearGradient(0, h - barH, 0, h);
+    grad.addColorStop(0, "rgba(4,6,10,0)");
+    grad.addColorStop(0.35, "rgba(4,6,10,0.72)");
+    grad.addColorStop(1, "rgba(4,6,10,0.92)");
+    c.fillStyle = grad;
+    c.fillRect(0, h - barH, w, barH);
+
+    const pad = w * 0.055;
+
+    if (state.logoImg) {
+      const maxH = h * 0.07, maxW = w * 0.24;
+      const ratio = Math.min(maxW / state.logoImg.width, maxH / state.logoImg.height);
+      const lw = state.logoImg.width * ratio, lh = state.logoImg.height * ratio;
+      c.drawImage(state.logoImg, pad, h * 0.06, lw, lh);
+    } else if (state.companyName) {
+      c.font = font("body", Math.max(h * 0.026, 13));
+      c.fillStyle = theme.accent;
+      c.textAlign = "left";
+      c.fillText(state.companyName.toUpperCase(), pad, h * 0.1);
+    }
+
+    let y = h - barH + h * 0.09;
+    c.fillStyle = "#ffffff";
+    c.font = font("head", Math.max(h * 0.06, 24));
+    y += wrapText(c, state.headline, pad, y, w - pad * 2, h * 0.07, "left");
+    y += h * 0.012;
+
+    c.fillStyle = "rgba(255,255,255,0.82)";
+    c.font = font("body", Math.max(h * 0.026, 13));
+    y += wrapText(c, state.subheadline, pad, y, w * 0.66, h * 0.038, "left");
+    y += h * 0.03;
+
+    if (state.ctaText) {
+      drawCTA(c, state.ctaText, pad, y, theme, "left");
+    }
+
+    if (state.footerText) {
+      c.font = font("body", Math.max(h * 0.018, 10));
+      c.fillStyle = "rgba(255,255,255,0.6)";
+      c.textAlign = "right";
+      c.fillText(state.footerText, w - pad, h * 0.965);
+    }
+  }
+
+  function render() {
+    canvas.width = state.format.w;
+    canvas.height = state.format.h;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const theme = currentTheme();
+    if (state.layout === "centered") layoutCentered(ctx, canvas.width, canvas.height, theme);
+    else if (state.layout === "split") layoutSplit(ctx, canvas.width, canvas.height, theme);
+    else layoutBottom(ctx, canvas.width, canvas.height, theme);
+
+    document.getElementById("formatLabel").textContent = state.format.name;
+    document.getElementById("dimsLabel").textContent = state.format.w + " × " + state.format.h;
+  }
+
+  // ---------- UI wiring ----------
+
+  function bindText(id, key) {
+    document.getElementById(id).addEventListener("input", (e) => {
+      state[key] = e.target.value;
+      render();
+    });
+  }
+  bindText("companyName", "companyName");
+  bindText("headline", "headline");
+  bindText("subheadline", "subheadline");
+  bindText("ctaText", "ctaText");
+  bindText("footerText", "footerText");
+
+  document.getElementById("fontSelect").addEventListener("change", (e) => {
+    state.font = e.target.value;
+    render();
+  });
+
+  document.getElementById("overlayToggle").addEventListener("change", (e) => {
+    state.overlay = e.target.checked;
+    render();
+  });
+
+  document.getElementById("accentColor").addEventListener("input", (e) => {
+    state.accent = e.target.value;
+    document.getElementById("accentHex").textContent = e.target.value;
+    render();
+  });
+
+  function loadImageFile(file, onLoad) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => onLoad(img);
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  document.getElementById("logoUpload").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    document.getElementById("logoFileName").textContent = file.name;
+    loadImageFile(file, (img) => { state.logoImg = img; render(); });
+  });
+
+  document.getElementById("bgUpload").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    document.getElementById("bgFileName").textContent = file.name;
+    loadImageFile(file, (img) => { state.bgImg = img; render(); });
+  });
+
+  document.getElementById("clearImagesBtn").addEventListener("click", () => {
+    state.logoImg = null;
+    state.bgImg = null;
+    document.getElementById("logoFileName").textContent = "None";
+    document.getElementById("bgFileName").textContent = "None";
+    document.getElementById("logoUpload").value = "";
+    document.getElementById("bgUpload").value = "";
+    render();
+  });
+
+  // Layout picks
+  const layoutPicks = document.querySelectorAll(".layout-pick");
+  layoutPicks.forEach((el) => {
+    el.addEventListener("click", () => {
+      layoutPicks.forEach((p) => p.classList.remove("active"));
+      el.classList.add("active");
+      state.layout = el.dataset.layout;
+      render();
+    });
+  });
+
+  // Theme swatches
+  const swatchWrap = document.getElementById("themeSwatches");
+  THEMES.forEach((t, i) => {
+    const sw = document.createElement("div");
+    sw.className = "swatch" + (i === 0 ? " active" : "");
+    sw.style.background = "linear-gradient(135deg, " + t.bg1 + ", " + t.bg2 + ")";
+    sw.title = t.name;
+    sw.addEventListener("click", () => {
+      document.querySelectorAll(".swatch").forEach((s) => s.classList.remove("active"));
+      sw.classList.add("active");
+      state.themeIndex = i;
+      state.accent = t.accent;
+      document.getElementById("accentColor").value = t.accent;
+      document.getElementById("accentHex").textContent = t.accent;
+      render();
+    });
+    swatchWrap.appendChild(sw);
+  });
+
+  // Format grid
+  const formatGrid = document.getElementById("formatGrid");
+  FORMATS.forEach((f, i) => {
+    const el = document.createElement("div");
+    el.className = "format-pick" + (i === 0 ? " active" : "");
+    el.innerHTML = '<div class="fname">' + f.name + '</div><div class="fdim">' + f.w + ' × ' + f.h + '</div>';
+    el.addEventListener("click", () => {
+      document.querySelectorAll(".format-pick").forEach((p) => p.classList.remove("active"));
+      el.classList.add("active");
+      state.format = f;
+      render();
+    });
+    formatGrid.appendChild(el);
+  });
+
+  // Randomize
+  document.getElementById("randomizeBtn").addEventListener("click", () => {
+    const ti = Math.floor(Math.random() * THEMES.length);
+    const layouts = ["centered", "split", "bottom"];
+    const li = Math.floor(Math.random() * layouts.length);
+    const fonts = Object.keys(FONTS);
+    const fi = Math.floor(Math.random() * fonts.length);
+
+    state.themeIndex = ti;
+    state.accent = THEMES[ti].accent;
+    state.layout = layouts[li];
+    state.font = fonts[fi];
+
+    document.querySelectorAll(".swatch").forEach((s, idx) => s.classList.toggle("active", idx === ti));
+    document.querySelectorAll(".layout-pick").forEach((p) => p.classList.toggle("active", p.dataset.layout === layouts[li]));
+    document.getElementById("fontSelect").value = fonts[fi];
+    document.getElementById("accentColor").value = THEMES[ti].accent;
+    document.getElementById("accentHex").textContent = THEMES[ti].accent;
+
+    render();
+  });
+
+  // Reset
+  document.getElementById("resetBtn").addEventListener("click", () => {
+    if (!confirm("Reset all fields and images to defaults?")) return;
+    document.getElementById("companyName").value = "Northbridge Capital";
+    document.getElementById("headline").value = "Grow Your Business With Confidence";
+    document.getElementById("subheadline").value = "Strategic finance, marketing, and operations support for ambitious companies.";
+    document.getElementById("ctaText").value = "Get Started";
+    document.getElementById("footerText").value = "www.northbridgecapital.com";
+    document.getElementById("fontSelect").value = "sans";
+    document.getElementById("overlayToggle").checked = true;
+    document.getElementById("accentColor").value = THEMES[0].accent;
+    document.getElementById("accentHex").textContent = THEMES[0].accent;
+
+    state.companyName = "Northbridge Capital";
+    state.headline = "Grow Your Business With Confidence";
+    state.subheadline = "Strategic finance, marketing, and operations support for ambitious companies.";
+    state.ctaText = "Get Started";
+    state.footerText = "www.northbridgecapital.com";
+    state.font = "sans";
+    state.overlay = true;
+    state.themeIndex = 0;
+    state.accent = THEMES[0].accent;
+    state.layout = "centered";
+    state.format = FORMATS[0];
+    state.logoImg = null;
+    state.bgImg = null;
+    document.getElementById("logoFileName").textContent = "None";
+    document.getElementById("bgFileName").textContent = "None";
+    document.getElementById("logoUpload").value = "";
+    document.getElementById("bgUpload").value = "";
+
+    document.querySelectorAll(".swatch").forEach((s, idx) => s.classList.toggle("active", idx === 0));
+    document.querySelectorAll(".layout-pick").forEach((p) => p.classList.toggle("active", p.dataset.layout === "centered"));
+    document.querySelectorAll(".format-pick").forEach((p, idx) => p.classList.toggle("active", idx === 0));
+
+    render();
+  });
+
+  // Download
+  document.getElementById("downloadBtn").addEventListener("click", () => {
+    const link = document.createElement("a");
+    const safeName = (state.companyName || "corporate-ad").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    link.download = (safeName || "corporate-ad") + "-" + state.format.id + ".png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
