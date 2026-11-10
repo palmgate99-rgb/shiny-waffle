@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tradefada SMC Dashboard</title>
+  <title>Tradefada Market Dashboard</title>
   <style>
     :root {
       --bg: #05070f;
@@ -312,6 +312,10 @@
 
     footer { margin-top: 34px; color: #5f7189; font-size: 12px; text-align: center; line-height: 1.6; }
     .toast { position: fixed; right: 22px; bottom: 22px; z-index: 10; max-width: 360px; padding: 15px 17px; border-radius: 18px; border: 1px solid rgba(53, 255, 228, 0.26); background: rgba(6, 13, 24, 0.92); color: var(--text); box-shadow: var(--shadow), 0 0 24px rgba(53, 255, 228, 0.28); transform: translateY(120%); opacity: 0; transition: 300ms ease; backdrop-filter: blur(18px); font-size: 14px; }
+    .bias-pill.neutral, .direction.neutral { color: var(--text); background: rgba(255,255,255,0.12); }
+    .empty-note { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
+    .notice { margin: 18px 0 0; padding: 14px 16px; border-radius: 16px; border: 1px solid rgba(255, 230, 109, 0.35); background: rgba(255, 230, 109, 0.07); color: #f3e9b0; font-size: 13px; line-height: 1.6; }
+    .price-label.sma { color: #fff; background: var(--purple); right: auto; left: 12px; }
     .toast.show { transform: translateY(0); opacity: 1; }
 
     @media (max-width: 1080px) { .hero, .dashboard { grid-template-columns: 1fr; } .market-grid { grid-template-columns: repeat(3, 1fr); } .setup-grid { grid-template-columns: 1fr 1fr; } }
@@ -324,7 +328,7 @@
 
   <main class="app">
     <header>
-      <div class="brand" aria-label="Tradefada SMC Dashboard brand">
+      <div class="brand" aria-label="Tradefada Market Dashboard brand">
         <div class="logo">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M4 16.5 8.5 12l3 3L20 6.5" />
@@ -332,28 +336,28 @@
           </svg>
         </div>
         <div>
-          <h1>Tradefada SMC Dashboard</h1>
-          <p>Smart money setups for forex, indices, gold, and stocks</p>
+          <h1>Tradefada Market Dashboard</h1>
+          <p>Trend, carry, value and RSI rules on real prices for forex, indices, metals, and stocks</p>
         </div>
       </div>
-      <div class="status-pill"><span class="pulse-dot"></span>Ready setups scanner active</div>
+      <div class="status-pill"><span class="pulse-dot"></span><span id="statusText">Loading market data</span></div>
     </header>
 
     <section class="hero">
       <div class="hero-card">
-        <div class="eyebrow"><span class="spark"></span>Major Currencies • Indices • Gold • Stocks • SMC</div>
-        <h2>Find <span class="gradient-text">ready SMC setups</span> with entry, stop loss, and take profit.</h2>
+        <div class="eyebrow"><span class="spark"></span>Major Currencies • Indices • Metals • Stocks • 15M / 1H / 4H</div>
+        <h2>Find <span class="gradient-text">trend pullback setups</span> with entry, stop, and position size.</h2>
         <p class="hero-copy">
-          Tradefada scans simulated market structure across major forex pairs, gold, top indices, and leading stocks. Use the dashboard to review trend direction, liquidity zones, multi-timeframe bias, and ready-to-trade setup cards.
+          Tradefada reads finished 15 minute, 1 hour and 4 hour candles and applies one rule set: trade only with the trend, enter on an RSI pullback, cut size when carry, valuation or volatility is against you, and stand aside on news days. Every number on this page comes from market data.
         </p>
         <div class="hero-actions">
           <button id="scrollToChecker">Open Market Scanner</button>
-          <button class="secondary" id="randomizeMarket">Generate Ready Setup</button>
+          <button class="secondary" id="refreshData">Reload Market Data</button>
         </div>
         <div class="mini-grid">
-          <div class="metric"><strong id="heroBias">Bullish</strong><span>Primary bias</span></div>
-          <div class="metric"><strong id="heroRR">1:2.7</strong><span>Risk reward</span></div>
-          <div class="metric"><strong id="heroScore">74%</strong><span>Setup confidence</span></div>
+          <div class="metric"><strong id="heroBias">n/a</strong><span>Trend on selected timeframe</span></div>
+          <div class="metric"><strong id="heroRR">n/a</strong><span>RSI (14)</span></div>
+          <div class="metric"><strong id="heroScore">n/a</strong><span>Rules met</span></div>
         </div>
       </div>
 
@@ -361,15 +365,9 @@
         <div class="checker-title">
           <div>
             <h3>Market Setup Scanner</h3>
-            <p>Paste a product or broker URL, choose market type, and generate a clean SMC trading breakdown.</p>
+            <p>Choose a market section, timeframe, risk level and account size. Stops and position sizes are worked out from real volatility.</p>
           </div>
-          <span class="badge">Client-side demo</span>
-        </div>
-
-        <div class="form-group">
-          <label for="productUrl">Website or Product URL</label>
-          <input id="productUrl" type="url" placeholder="https://tradefada.com" value="https://tradefada-smc.com" autocomplete="url" />
-          <div class="error" id="urlError" role="alert"></div>
+          <span class="badge">Real data</span>
         </div>
 
         <div class="two-col">
@@ -378,7 +376,7 @@
             <select id="assetClass">
               <option value="currencies">Major Currencies</option>
               <option value="indices">Indices</option>
-              <option value="gold">Gold</option>
+              <option value="gold">Gold &amp; Metals</option>
               <option value="stocks">Stocks</option>
             </select>
           </div>
@@ -388,7 +386,6 @@
               <option value="15m">15 Minutes</option>
               <option value="1h" selected>1 Hour</option>
               <option value="4h">4 Hours</option>
-              <option value="1d">Daily</option>
             </select>
           </div>
         </div>
@@ -408,15 +405,12 @@
           </div>
         </div>
 
-        <button id="analyzeBtn">Generate Ready Setups</button>
+        <button id="analyzeBtn">Reload Market Data</button>
 
         <div class="url-preview" aria-live="polite">
-          <div class="domain" id="domainName">tradefada-smc.com</div>
-          <div class="score-row">
-            <span>Dashboard fit</span>
-            <div class="score-line"><div class="score-fill" id="fitFill"></div></div>
-            <strong id="fitScore">88%</strong>
-          </div>
+          <div class="domain" id="dataStatus">Loading market data</div>
+          <div class="score-row"><span id="dataDetail"></span></div>
+          <div class="error" id="dataError" role="alert"></div>
         </div>
       </aside>
     </section>
@@ -425,26 +419,26 @@
       <div class="panel">
         <div class="panel-heading">
           <div>
-            <h3>Interactive SMC Market Structure</h3>
-            <span id="chartSubtitle">EUR/USD • 1H • Major Currencies</span>
+            <h3>Price, Trend Average and Stop</h3>
+            <span id="chartSubtitle">Loading</span>
           </div>
           <div class="tabs" id="tabs"></div>
         </div>
 
         <div class="chart-shell">
-          <canvas id="marketCanvas" width="980" height="430" aria-label="Simulated market chart"></canvas>
+          <canvas id="marketCanvas" width="980" height="430" aria-label="Candlestick chart of real market prices"></canvas>
           <div class="chart-overlay">
-            <span class="price-label tp" id="tpLabel">TP 1.09480</span>
-            <span class="price-label entry" id="entryLabel">Entry 1.08850</span>
-            <span class="price-label sl" id="slLabel">SL 1.08590</span>
+            <span class="price-label sma" id="tpLabel"></span>
+            <span class="price-label entry" id="entryLabel"></span>
+            <span class="price-label sl" id="slLabel"></span>
           </div>
         </div>
 
         <div class="breakdown">
-          <div class="tile"><span>Trend Direction</span><strong id="trendTile">Bullish continuation</strong></div>
-          <div class="tile"><span>SMC Footprint</span><strong id="smcTile">Liquidity sweep</strong></div>
-          <div class="tile"><span>Stop Loss Zone</span><strong id="slTile">Below demand</strong></div>
-          <div class="tile"><span>Take Profit Target</span><strong id="tpTile">Buy-side liquidity</strong></div>
+          <div class="tile"><span>Trend Direction</span><strong id="trendTile">n/a</strong></div>
+          <div class="tile"><span>RSI (14) Trigger</span><strong id="smcTile">n/a</strong></div>
+          <div class="tile"><span>Stop Loss</span><strong id="slTile">n/a</strong></div>
+          <div class="tile"><span>Exit Rule (no fixed target)</span><strong id="tpTile">n/a</strong></div>
         </div>
       </div>
 
@@ -453,22 +447,24 @@
           <div class="panel-heading">
             <div>
               <h3>Signal Breakdown</h3>
-              <span>Bias engine updates with each market</span>
+              <span>Rule readings for the selected market</span>
             </div>
           </div>
           <div class="signal-card">
             <div class="signal-top">
-              <h4 id="signalTitle">EUR/USD Setup</h4>
-              <span class="direction bullish" id="directionBadge">▲ BUY</span>
+              <h4 id="signalTitle">Loading</h4>
+              <span class="direction neutral" id="directionBadge">n/a</span>
             </div>
             <div class="confidence-ring" id="confidenceRing">
-              <div class="confidence-inner"><strong id="confidenceText">74%</strong></div>
+              <div class="confidence-inner"><strong id="confidenceText">n/a</strong></div>
             </div>
             <div class="signal-list">
-              <div class="signal-row"><span>4H Bias</span><strong id="bias4h">Bullish</strong></div>
-              <div class="signal-row"><span>1H Bias</span><strong id="bias1h">Bullish pullback</strong></div>
-              <div class="signal-row"><span>15M Trigger</span><strong id="trigger15m">CHOCH + retest</strong></div>
-              <div class="signal-row"><span>Risk Allocation</span><strong id="riskAllocation">$50.00</strong></div>
+              <div class="signal-row"><span>4H Trend</span><strong id="bias4h">n/a</strong></div>
+              <div class="signal-row"><span>1H Trend</span><strong id="bias1h">n/a</strong></div>
+              <div class="signal-row"><span>15M Trigger</span><strong id="trigger15m">n/a</strong></div>
+              <div class="signal-row"><span>Risk Allocation</span><strong id="riskAllocation">n/a</strong></div>
+              <div class="signal-row"><span>Position Size</span><strong id="positionSize">n/a</strong></div>
+              <div class="signal-row"><span>Size Adjustments</span><strong id="sizeNotes">n/a</strong></div>
             </div>
           </div>
         </div>
@@ -477,7 +473,7 @@
           <div class="panel-heading">
             <div>
               <h3>Active Watchlist</h3>
-              <span>Click any market to refresh setup</span>
+              <span>Change since the previous day's close</span>
             </div>
           </div>
           <div class="watchlist" id="watchlist"></div>
@@ -489,7 +485,7 @@
       <div class="panel-heading">
         <div>
           <h3>All Market Sections</h3>
-          <span>Major currencies, indices, gold, and stocks in one dashboard</span>
+          <span>Rule status on the selected timeframe</span>
         </div>
         <div class="category-tabs" id="categoryTabs"></div>
       </div>
@@ -500,249 +496,155 @@
       <div class="panel-heading">
         <div>
           <h3>Ready Setups</h3>
-          <span>Prebuilt SMC setup cards with direction, entry, SL, TP, and risk-reward</span>
+          <span>RSI pullback triggers fired on the last three finished candles, across all timeframes</span>
         </div>
       </div>
       <div class="setup-grid" id="setupGrid"></div>
     </section>
 
     <footer>
-      Educational prototype only. This dashboard simulates technical analysis visuals and does not provide financial advice or live market data.
+      Research display, not financial advice. Prices are Yahoo Finance candles, which are unofficial and can lag or contain errors; gold and silver are COMEX futures, not spot. In backtests on the six major US dollar pairs these rules lost money on 15 minute and 1 hour candles and roughly broke even on 4 hour candles, after estimated costs.
     </footer>
   </main>
 
   <div class="toast" id="toast" role="status" aria-live="polite">Market setup updated.</div>
 
   <script>
-    const state = {
-      symbol: 'EUR/USD',
-      trend: 'bullish',
-      confidence: 74,
-      fit: 88,
-      seed: 12,
-      data: []
-    };
+    // Real market data. The file is produced by fx_strategy/export_dashboard.py on a schedule.
+    const DATA_URLS = [
+      'dashboard_data.json',
+      'https://raw.githubusercontent.com/palmgate99-rgb/shiny-waffle/dashboard-data/dashboard_data.json',
+      'https://raw.githubusercontent.com/palmgate99-rgb/shiny-waffle/main/dashboard_data.json'
+    ];
+    const REFRESH_MS = 5 * 60 * 1000;
+    const STALE_MINUTES = 45;
+    const RISK_PCT = { conservative: 0.5, balanced: 1, aggressive: 2 };
+    const categoryNames = { currencies: 'Major Currencies', indices: 'Indices', gold: 'Gold & Metals', stocks: 'Stocks' };
+    const state = { symbol: 'EUR/USD', data: null };
 
-    const markets = {
-      currencies: [
-        { symbol: 'EUR/USD', label: 'Euro Dollar', change: 0.42, base: 1.0885 },
-        { symbol: 'GBP/USD', label: 'British Pound Dollar', change: -0.18, base: 1.2742 },
-        { symbol: 'USD/JPY', label: 'Dollar Yen', change: 0.31, base: 154.82 },
-        { symbol: 'USD/CAD', label: 'Dollar CAD', change: -0.22, base: 1.3678 },
-        { symbol: 'AUD/USD', label: 'Aussie Dollar', change: 0.27, base: 0.6634 },
-        { symbol: 'NZD/USD', label: 'Kiwi Dollar', change: 0.14, base: 0.6042 },
-        { symbol: 'EUR/JPY', label: 'Euro Yen', change: 0.56, base: 168.44 },
-        { symbol: 'GBP/JPY', label: 'Pound Yen', change: -0.35, base: 197.19 }
-      ],
-      indices: [
-        { symbol: 'NAS100', label: 'Nasdaq 100', change: 0.88, base: 18420 },
-        { symbol: 'US30', label: 'Dow Jones', change: -0.24, base: 38980 },
-        { symbol: 'SPX500', label: 'S&P 500', change: 0.35, base: 5238 },
-        { symbol: 'GER40', label: 'DAX Index', change: 0.16, base: 18355 },
-        { symbol: 'UK100', label: 'FTSE 100', change: -0.12, base: 8210 },
-        { symbol: 'JPN225', label: 'Nikkei 225', change: 0.44, base: 38420 }
-      ],
-      gold: [
-        { symbol: 'XAU/USD', label: 'Gold Spot', change: 0.76, base: 2368.4 },
-        { symbol: 'XAG/USD', label: 'Silver Spot', change: -0.21, base: 30.18 },
-        { symbol: 'GOLD FUT', label: 'Gold Futures', change: 0.58, base: 2376.9 }
-      ],
-      stocks: [
-        { symbol: 'AAPL', label: 'Apple Inc.', change: 0.52, base: 189.42 },
-        { symbol: 'NVDA', label: 'NVIDIA', change: 1.34, base: 912.6 },
-        { symbol: 'TSLA', label: 'Tesla', change: -0.92, base: 176.7 },
-        { symbol: 'MSFT', label: 'Microsoft', change: 0.27, base: 421.4 },
-        { symbol: 'AMZN', label: 'Amazon', change: 0.66, base: 182.3 },
-        { symbol: 'META', label: 'Meta Platforms', change: -0.31, base: 474.8 }
-      ]
-    };
+    const $ = id => document.getElementById(id);
+    const elements = {};
+    ['assetClass', 'timeframe', 'riskLevel', 'capital', 'analyzeBtn', 'dataStatus', 'dataDetail', 'dataError', 'statusText',
+      'marketCanvas', 'chartSubtitle', 'tpLabel', 'entryLabel', 'slLabel', 'trendTile', 'smcTile', 'slTile', 'tpTile',
+      'signalTitle', 'directionBadge', 'confidenceRing', 'confidenceText', 'bias4h', 'bias1h', 'trigger15m',
+      'riskAllocation', 'positionSize', 'sizeNotes', 'watchlist', 'tabs', 'categoryTabs', 'marketGrid', 'setupGrid',
+      'toast', 'heroBias', 'heroRR', 'heroScore', 'scrollToChecker', 'refreshData'].forEach(id => { elements[id] = $(id); });
+    const ctx = elements.marketCanvas.getContext('2d');
 
-    const categoryNames = {
-      currencies: 'Major Currencies',
-      indices: 'Indices',
-      gold: 'Gold & Metals',
-      stocks: 'Stocks'
-    };
-
-    const elements = {
-      productUrl: document.getElementById('productUrl'),
-      urlError: document.getElementById('urlError'),
-      assetClass: document.getElementById('assetClass'),
-      timeframe: document.getElementById('timeframe'),
-      riskLevel: document.getElementById('riskLevel'),
-      capital: document.getElementById('capital'),
-      analyzeBtn: document.getElementById('analyzeBtn'),
-      domainName: document.getElementById('domainName'),
-      fitFill: document.getElementById('fitFill'),
-      fitScore: document.getElementById('fitScore'),
-      canvas: document.getElementById('marketCanvas'),
-      chartSubtitle: document.getElementById('chartSubtitle'),
-      tpLabel: document.getElementById('tpLabel'),
-      entryLabel: document.getElementById('entryLabel'),
-      slLabel: document.getElementById('slLabel'),
-      trendTile: document.getElementById('trendTile'),
-      smcTile: document.getElementById('smcTile'),
-      slTile: document.getElementById('slTile'),
-      tpTile: document.getElementById('tpTile'),
-      signalTitle: document.getElementById('signalTitle'),
-      directionBadge: document.getElementById('directionBadge'),
-      confidenceRing: document.getElementById('confidenceRing'),
-      confidenceText: document.getElementById('confidenceText'),
-      bias4h: document.getElementById('bias4h'),
-      bias1h: document.getElementById('bias1h'),
-      trigger15m: document.getElementById('trigger15m'),
-      riskAllocation: document.getElementById('riskAllocation'),
-      watchlist: document.getElementById('watchlist'),
-      tabs: document.getElementById('tabs'),
-      categoryTabs: document.getElementById('categoryTabs'),
-      marketGrid: document.getElementById('marketGrid'),
-      setupGrid: document.getElementById('setupGrid'),
-      toast: document.getElementById('toast'),
-      heroBias: document.getElementById('heroBias'),
-      heroRR: document.getElementById('heroRR'),
-      heroScore: document.getElementById('heroScore'),
-      scrollToChecker: document.getElementById('scrollToChecker'),
-      randomizeMarket: document.getElementById('randomizeMarket')
-    };
-
-    const ctx = elements.canvas.getContext('2d');
-
-    function validateUrl(value) {
-      try {
-        const url = new URL(value);
-        if (!['http:', 'https:'].includes(url.protocol)) return { valid: false, message: 'Enter a valid http or https URL.' };
-        return { valid: true, host: url.hostname.replace(/^www\./, '') };
-      } catch (error) {
-        return { valid: false, message: 'Enter a complete URL, for example https://tradefada.com.' };
-      }
-    }
-
-    function hashText(text) {
-      let hash = 0;
-      for (let i = 0; i < text.length; i++) {
-        hash = ((hash << 5) - hash) + text.charCodeAt(i);
-        hash |= 0;
-      }
-      return Math.abs(hash);
-    }
-
-    function seededNoise(index, seed) {
-      const x = Math.sin(index * 12.9898 + seed * 78.233) * 43758.5453;
-      return x - Math.floor(x);
-    }
-
-    function activeMarketList() { return markets[elements.assetClass.value] || markets.currencies; }
-    function allMarkets() { return Object.values(markets).flat(); }
-    function currentMarket() { return allMarkets().find(item => item.symbol === state.symbol) || activeMarketList()[0]; }
-    function currentCategoryForSymbol(symbol = state.symbol) {
-      return Object.keys(markets).find(key => markets[key].some(item => item.symbol === symbol)) || elements.assetClass.value;
-    }
+    const esc = text => String(text).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const tf = () => elements.timeframe.value;
+    const marketsIn = category => Object.entries(state.data.markets).filter(([, m]) => m.category === category).map(([symbol, m]) => ({ symbol, ...m }));
+    const market = (symbol = state.symbol) => state.data.markets[symbol];
+    const reading = (symbol = state.symbol, timeframe = tf()) => { const m = market(symbol); return m && m.tf[timeframe]; };
 
     function formatPrice(value, symbol = state.symbol) {
-      if (symbol.includes('/USD') && value < 10) return value.toFixed(5);
-      if (symbol.includes('JPY')) return value.toFixed(2);
+      if (value === null || value === undefined) return 'n/a';
+      if (symbol.includes('JPY')) return value.toFixed(3);
+      if (symbol.includes('/')) return value.toFixed(5);
       if (value > 1000) return value.toLocaleString(undefined, { maximumFractionDigits: 1 });
-      if (value > 100) return value.toFixed(2);
-      return value.toFixed(4);
+      return value.toFixed(2);
+    }
+    const money = value => '$' + value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    // Everything below is read from the data file. Nothing is generated in the browser.
+    function analyse(symbol, timeframe) {
+      const m = market(symbol);
+      const r = reading(symbol, timeframe);
+      if (!r) return null;
+      const rules = state.data.rules;
+      const direction = r.signal || r.trend;
+      const side = direction === 1 ? r.long : direction === -1 ? r.short : null;
+      const currencies = symbol.includes('/') ? symbol.split('/') : [m.currency];
+      const news = state.data.news_today.some(c => currencies.includes(c));
+      const stopDistance = rules.stop_atr * r.atr;
+      const stop = direction ? r.close - direction * stopDistance : null;
+      const riskPct = (RISK_PCT[elements.riskLevel.value] || 1) * (side ? side.mult : 1);
+      const riskUsd = Math.max(0, Number(elements.capital.value) || 0) * riskPct / 100;
+      const toUsd = state.data.to_usd[m.currency];  // undefined when the conversion rate could not be loaded
+      const perUnitUsd = stopDistance * (toUsd || 0);
+      const units = !direction ? 0 : perUnitUsd > 0 ? riskUsd / perUnitUsd : null;
+      const checks = direction ? [
+        direction === 1 ? r.close > r.sma : r.close < r.sma,
+        direction === 1 ? r.mom > 0 : r.mom < 0,
+        r.signal !== 0,
+        side.mult === 1,
+        !news
+      ] : [];
+      let status;
+      if (r.signal === 1) status = 'BUY SIGNAL';
+      else if (r.signal === -1) status = 'SELL SIGNAL';
+      else if (r.trend === 1) status = 'UPTREND, WAITING';
+      else if (r.trend === -1) status = 'DOWNTREND, WAITING';
+      else status = 'NO TRADE';
+      return { m, r, direction, side, news, stop, stopDistance, trail: rules.trail_atr * r.atr, riskPct, riskUsd, units,
+        met: checks.filter(Boolean).length, total: 5, status, tone: direction === 1 ? 'bullish' : direction === -1 ? 'bearish' : 'neutral' };
     }
 
-    function generateData() {
-      const market = currentMarket();
-      const seed = state.seed + hashText(state.symbol) % 100;
-      const points = [];
-      const bullish = state.trend === 'bullish';
-      const direction = bullish ? 1 : -1;
-      let price = market.base * (1 + ((seed % 9) - 4) / 1000);
-      const volatility = market.base * (market.base > 1000 ? 0.0014 : 0.0028);
-
-      for (let i = 0; i < 78; i++) {
-        const cycle = Math.sin(i / 6) * volatility * 1.8;
-        const impulse = direction * i * volatility * 0.18;
-        const noise = (seededNoise(i, seed) - 0.5) * volatility * 2.5;
-        const sweep = i === 22 ? -direction * volatility * 7 : i === 55 ? direction * volatility * 6 : 0;
-        price += direction * volatility * 0.08 + noise * 0.22;
-        const close = price + cycle + impulse + sweep;
-        const open = points.length ? points[points.length - 1].close : close - direction * volatility;
-        const high = Math.max(open, close) + volatility * (0.8 + seededNoise(i + 4, seed) * 1.6);
-        const low = Math.min(open, close) - volatility * (0.8 + seededNoise(i + 8, seed) * 1.6);
-        points.push({ open, high, low, close });
-      }
-      state.data = points;
+    function sizeText(a, symbol) {
+      if (!a.direction) return 'No position';
+      if (a.units === null) return `Unavailable (no ${a.m.currency} to USD rate)`;
+      if (symbol.includes('/')) return `${(a.units / 100000).toFixed(2)} lots (${Math.round(a.units).toLocaleString()} units)`;
+      return `${a.units >= 100 ? Math.round(a.units).toLocaleString() : a.units.toFixed(2)} ${a.m.category === 'stocks' ? 'shares' : 'units'}`;
+    }
+    const ago = (n, word) => n === 0 ? `last ${word}` : `${n} ${word}${n === 1 ? '' : 's'} ago`;
+    const trendText = t => t === 1 ? 'Uptrend' : t === -1 ? 'Downtrend' : 'No trend';
+    function triggerText(r) {
+      if (!r) return 'n/a';
+      if (r.signal) return `${r.signal === 1 ? 'Buy' : 'Sell'} trigger, ${ago(r.signal_age, 'bar')}`;
+      return `None, RSI ${r.rsi.toFixed(1)}`;
     }
 
     function drawChart() {
-      const canvas = elements.canvas;
+      const canvas = elements.marketCanvas;
       const dpr = window.devicePixelRatio || 1;
       const rect = canvas.getBoundingClientRect();
       canvas.width = Math.max(1, Math.floor(rect.width * dpr));
       canvas.height = Math.max(1, Math.floor(rect.height * dpr));
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-      const width = rect.width;
-      const height = rect.height;
+      const width = rect.width, height = rect.height;
       ctx.clearRect(0, 0, width, height);
-
-      const data = state.data;
-      const allPrices = data.flatMap(d => [d.high, d.low]);
-      const min = Math.min(...allPrices);
-      const max = Math.max(...allPrices);
-      const pad = (max - min) * 0.12;
+      const a = state.data && market() && analyse(state.symbol, tf());
+      if (!a) return;
+      const data = a.r.candles.map(c => ({ open: c[1], high: c[2], low: c[3], close: c[4], sma: c[5] }));
+      const levels = data.flatMap(d => [d.high, d.low]).concat(data.map(d => d.sma).filter(v => v !== null));
+      if (a.stop !== null) levels.push(a.stop);
+      const min = Math.min(...levels), max = Math.max(...levels);
+      const pad = (max - min) * 0.08 || 1;
       const y = price => height - ((price - min + pad) / (max - min + pad * 2)) * height;
-      const candleWidth = Math.max(4, width / data.length * 0.55);
-      const spacing = width / data.length;
+      const spacing = (width - 70) / data.length;
+      const candleWidth = Math.max(3, spacing * 0.55);
 
-      ctx.save();
-      ctx.globalAlpha = 0.18;
-      ctx.strokeStyle = '#35ffe4';
-      ctx.lineWidth = 1;
-      for (let i = 1; i < 5; i++) {
-        const yy = height * i / 5;
-        ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(width, yy); ctx.stroke();
-      }
+      ctx.save(); ctx.globalAlpha = 0.18; ctx.strokeStyle = '#35ffe4'; ctx.lineWidth = 1;
+      for (let i = 1; i < 5; i++) { const yy = height * i / 5; ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(width, yy); ctx.stroke(); }
       ctx.restore();
-
-      const last = data[data.length - 1].close;
-      const first = data[0].close;
-      const bullish = last >= first;
-      const zoneTop = y(bullish ? max - (max - min) * 0.2 : min + (max - min) * 0.42);
-      const zoneBottom = y(bullish ? max - (max - min) * 0.36 : min + (max - min) * 0.25);
-
-      ctx.fillStyle = bullish ? 'rgba(72, 255, 155, 0.08)' : 'rgba(255, 75, 110, 0.08)';
-      ctx.strokeStyle = bullish ? 'rgba(72, 255, 155, 0.32)' : 'rgba(255, 75, 110, 0.32)';
-      roundRect(ctx, width * 0.52, Math.min(zoneTop, zoneBottom), width * 0.33, Math.abs(zoneBottom - zoneTop), 12, true, true);
-
-      ctx.fillStyle = 'rgba(157, 92, 255, 0.08)';
-      ctx.strokeStyle = 'rgba(157, 92, 255, 0.32)';
-      roundRect(ctx, width * 0.17, height * 0.18, width * 0.2, height * 0.12, 12, true, true);
 
       data.forEach((d, i) => {
         const x = i * spacing + spacing / 2;
-        const isUp = d.close >= d.open;
-        const color = isUp ? '#48ff9b' : '#ff4b6e';
+        const color = d.close >= d.open ? '#48ff9b' : '#ff4b6e';
         ctx.strokeStyle = color; ctx.fillStyle = color; ctx.globalAlpha = 0.92; ctx.lineWidth = 1.2;
         ctx.beginPath(); ctx.moveTo(x, y(d.high)); ctx.lineTo(x, y(d.low)); ctx.stroke();
         const bodyY = Math.min(y(d.open), y(d.close));
-        const bodyH = Math.max(2, Math.abs(y(d.open) - y(d.close)));
-        roundRect(ctx, x - candleWidth / 2, bodyY, candleWidth, bodyH, 3, true, false);
+        roundRect(ctx, x - candleWidth / 2, bodyY, candleWidth, Math.max(2, Math.abs(y(d.open) - y(d.close))), 2, true, false);
       });
 
-      drawDashedLine(y(last), '#35ffe4', 'ENTRY');
-      const spread = (max - min) * 0.26;
-      drawDashedLine(y(state.trend === 'bullish' ? last + spread : last - spread), '#48ff9b', 'TP');
-      drawDashedLine(y(state.trend === 'bullish' ? last - spread * 0.48 : last + spread * 0.48), '#ff4b6e', 'SL');
+      ctx.save(); ctx.globalAlpha = 0.9; ctx.strokeStyle = '#9d5cff'; ctx.lineWidth = 2; ctx.beginPath();
+      let started = false;
+      data.forEach((d, i) => {
+        if (d.sma === null) return;
+        const x = i * spacing + spacing / 2;
+        if (started) ctx.lineTo(x, y(d.sma)); else { ctx.moveTo(x, y(d.sma)); started = true; }
+      });
+      ctx.stroke(); ctx.restore();
 
-      function drawDashedLine(yy, color, label) {
-        ctx.save();
-        ctx.strokeStyle = color;
-        ctx.setLineDash([7, 8]);
-        ctx.globalAlpha = 0.65;
-        ctx.lineWidth = 1.4;
-        ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(width, yy); ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.fillStyle = color;
-        ctx.font = '700 11px Inter, sans-serif';
-        ctx.fillText(label, 10, yy - 7);
-        ctx.restore();
+      const place = (el, price) => { el.style.top = Math.min(height - 30, Math.max(4, y(price) - 13)) + 'px'; };
+      dashed(y(a.r.close), '#35ffe4'); place(elements.entryLabel, a.r.close);
+      place(elements.tpLabel, a.r.sma);
+      elements.slLabel.style.display = a.stop === null ? 'none' : '';
+      if (a.stop !== null) { dashed(y(a.stop), '#ff4b6e'); place(elements.slLabel, a.stop); }
+
+      function dashed(yy, color) {
+        ctx.save(); ctx.strokeStyle = color; ctx.setLineDash([7, 8]); ctx.globalAlpha = 0.65; ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(width, yy); ctx.stroke(); ctx.restore();
       }
     }
 
@@ -759,142 +661,124 @@
       if (stroke) context.stroke();
     }
 
-    function setupForMarket(market) {
-      const urlSeed = hashText((elements.productUrl.value || '') + market.symbol + elements.timeframe.value);
-      const bullish = market.change + ((urlSeed % 9) - 4) / 10 >= 0;
-      const confidence = Math.max(52, Math.min(94, 60 + (urlSeed % 28) + (market.change >= 0 ? 3 : -2)));
-      const vol = market.base * (market.base > 1000 ? 0.004 : 0.006);
-      const entry = market.base + (bullish ? vol * 0.25 : -vol * 0.25);
-      const sl = bullish ? entry - vol * 0.95 : entry + vol * 0.95;
-      const tp = bullish ? entry + vol * 2.35 : entry - vol * 2.35;
-      const rr = Math.abs(tp - entry) / Math.abs(entry - sl);
-      return { bullish, confidence, entry, sl, tp, rr };
-    }
+    const changeHtml = m => m.change_pct === null ? '<span class="change">n/a</span>'
+      : `<span class="change ${m.change_pct >= 0 ? 'up' : 'down'}">${m.change_pct >= 0 ? '+' : ''}${m.change_pct.toFixed(2)}%</span>`;
 
-    function updateTabs() {
-      const preferred = activeMarketList().slice(0, 6);
-      if (!preferred.some(item => item.symbol === state.symbol)) state.symbol = preferred[0].symbol;
-      elements.tabs.innerHTML = preferred.map(item => `<button class="tab ${item.symbol === state.symbol ? 'active' : ''}" data-symbol="${item.symbol}">${item.symbol}</button>`).join('');
-    }
-
-    function updateWatchlist() {
-      elements.watchlist.innerHTML = activeMarketList().map(item => `
-        <div class="watch-item ${item.symbol === state.symbol ? 'active' : ''}" data-symbol="${item.symbol}" role="button" tabindex="0">
-          <div><b>${item.symbol}</b><small>${item.label}</small></div>
-          <span class="change ${item.change >= 0 ? 'up' : 'down'}">${item.change >= 0 ? '+' : ''}${item.change.toFixed(2)}%</span>
+    function updateLists() {
+      let list = marketsIn(elements.assetClass.value);
+      if (!list.length) {  // every market in this section failed to load, so fall back to one that has data
+        elements.assetClass.value = Object.values(state.data.markets)[0].category;
+        list = marketsIn(elements.assetClass.value);
+      }
+      if (!list.some(item => item.symbol === state.symbol)) state.symbol = list[0].symbol;
+      elements.tabs.innerHTML = list.slice(0, 6).map(item => `<button class="tab ${item.symbol === state.symbol ? 'active' : ''}" data-symbol="${esc(item.symbol)}">${esc(item.symbol)}</button>`).join('');
+      elements.watchlist.innerHTML = list.map(item => `
+        <div class="watch-item ${item.symbol === state.symbol ? 'active' : ''}" data-symbol="${esc(item.symbol)}" role="button" tabindex="0">
+          <div><b>${esc(item.symbol)}</b><small>${esc(item.label)}${item.stale ? ' (not updated)' : ''}</small></div>
+          ${changeHtml(item)}
         </div>`).join('');
-    }
-
-    function updateCategoryTabs() {
-      elements.categoryTabs.innerHTML = Object.keys(markets).map(key => `<button class="category-tab ${elements.assetClass.value === key ? 'active' : ''}" data-category="${key}">${categoryNames[key]}</button>`).join('');
-    }
-
-    function updateMarketGrid() {
-      const category = elements.assetClass.value;
-      elements.marketGrid.innerHTML = markets[category].map(item => {
-        const setup = setupForMarket(item);
+      elements.categoryTabs.innerHTML = Object.keys(categoryNames).map(key => `<button class="category-tab ${elements.assetClass.value === key ? 'active' : ''}" data-category="${key}">${categoryNames[key]}</button>`).join('');
+      elements.marketGrid.innerHTML = list.map(item => {
+        const a = analyse(item.symbol, tf());
         return `
-          <article class="market-card ${item.symbol === state.symbol ? 'active' : ''}" data-symbol="${item.symbol}">
+          <article class="market-card ${item.symbol === state.symbol ? 'active' : ''}" data-symbol="${esc(item.symbol)}">
             <div class="market-card-top">
-              <div><h4>${item.symbol}</h4><p>${item.label}</p></div>
-              <span class="change ${item.change >= 0 ? 'up' : 'down'}">${item.change >= 0 ? '+' : ''}${item.change.toFixed(2)}%</span>
+              <div><h4>${esc(item.symbol)}</h4><p>${esc(item.label)}</p></div>
+              ${changeHtml(item)}
             </div>
-            <div class="market-price">${formatPrice(item.base, item.symbol)}</div>
-            <span class="bias-pill ${setup.bullish ? 'bullish' : 'bearish'}">${setup.bullish ? 'BUY BIAS' : 'SELL BIAS'} • ${setup.confidence}%</span>
+            <div class="market-price">${formatPrice(item.price, item.symbol)}</div>
+            <span class="bias-pill ${a ? a.tone : 'neutral'}">${a ? `${a.status} • RSI ${a.r.rsi.toFixed(0)}` : 'NOT ENOUGH HISTORY'}</span>
           </article>`;
       }).join('');
     }
 
     function updateSetupGrid() {
-      const candidates = allMarkets()
-        .map(item => ({ item, setup: setupForMarket(item) }))
-        .sort((a, b) => b.setup.confidence - a.setup.confidence)
-        .slice(0, 6);
-
-      elements.setupGrid.innerHTML = candidates.map(({ item, setup }) => `
-        <article class="setup-card" data-symbol="${item.symbol}">
-          <span class="setup-pill ${setup.bullish ? 'buy' : 'sell'}">${setup.bullish ? 'BUY SETUP' : 'SELL SETUP'} • ${setup.confidence}%</span>
-          <h4>${item.symbol}</h4>
-          <p>${item.label} — ${setup.bullish ? 'Liquidity sweep into demand with bullish confirmation.' : 'Buy-side liquidity sweep into supply with bearish confirmation.'}</p>
+      const found = [];
+      Object.keys(state.data.markets).forEach(symbol => state.data.timeframes.forEach(timeframe => {
+        const a = analyse(symbol, timeframe);
+        if (a && a.r.signal) found.push({ symbol, timeframe, a });
+      }));
+      found.sort((x, y) => x.a.r.signal_age - y.a.r.signal_age || y.a.met - x.a.met);
+      if (!found.length) {
+        elements.setupGrid.innerHTML = '<p class="empty-note">No market has fired an RSI pullback trigger on its last three finished candles. That is normal: the rules wait for a pullback inside a trend, so most of the time there is nothing to do.</p>';
+        return;
+      }
+      elements.setupGrid.innerHTML = found.map(({ symbol, timeframe, a }) => `
+        <article class="setup-card" data-symbol="${esc(symbol)}" data-tf="${timeframe}">
+          <span class="setup-pill ${a.direction === 1 ? 'buy' : 'sell'}">${a.direction === 1 ? 'BUY' : 'SELL'} TRIGGER • ${timeframe.toUpperCase()}</span>
+          <h4>${esc(symbol)}</h4>
+          <p>${esc(a.m.label)}. RSI recrossed ${a.direction === 1 ? 'above ' + state.data.rules.rsi_long : 'below ' + state.data.rules.rsi_short} ${a.r.signal_age === 0 ? 'on the last finished candle' : ago(a.r.signal_age, 'candle')} at ${formatPrice(a.r.signal_price, symbol)}.${a.news ? ' Scheduled news today: the rules delay entry.' : ''}</p>
           <div class="setup-meta">
-            <div><span>Entry</span><strong>${formatPrice(setup.entry, item.symbol)}</strong></div>
-            <div><span>SL</span><strong>${formatPrice(setup.sl, item.symbol)}</strong></div>
-            <div><span>TP</span><strong>${formatPrice(setup.tp, item.symbol)}</strong></div>
+            <div><span>Last</span><strong>${formatPrice(a.r.close, symbol)}</strong></div>
+            <div><span>Stop</span><strong>${formatPrice(a.stop, symbol)}</strong></div>
+            <div><span>Trail</span><strong>${formatPrice(a.trail, symbol)}</strong></div>
           </div>
           <div class="setup-meta">
-            <div><span>RR</span><strong>1:${setup.rr.toFixed(1)}</strong></div>
-            <div><span>TF</span><strong>${elements.timeframe.value.toUpperCase()}</strong></div>
-            <div><span>Model</span><strong>SMC</strong></div>
+            <div><span>Risk</span><strong>${a.riskPct.toFixed(2)}%</strong></div>
+            <div><span>Rules met</span><strong>${a.met}/${a.total}</strong></div>
+            <div><span>Size cut</span><strong>${a.side.notes.length ? esc(a.side.notes.join(', ')) : 'none'}</strong></div>
           </div>
         </article>`).join('');
     }
 
-    function calculateSignal() {
-      const validation = validateUrl(elements.productUrl.value.trim());
-      const capital = Number(elements.capital.value);
-      const risk = elements.riskLevel.value;
-      const tf = elements.timeframe.value;
-      const market = currentMarket();
-      const urlSeed = validation.valid ? hashText(validation.host) : 38;
-      const riskMap = { conservative: 0.5, balanced: 1, aggressive: 2 };
-      const tfBoost = { '15m': -4, '1h': 3, '4h': 6, '1d': 1 };
-      state.seed = (urlSeed % 97) + Math.floor(capital / 200);
-      state.confidence = Math.max(48, Math.min(94, 62 + (urlSeed % 21) + (market.change >= 0 ? 4 : -3) + (tfBoost[tf] || 0)));
-      state.fit = Math.max(42, Math.min(98, 70 + (urlSeed % 24) - (validation.valid ? 0 : 20)));
-      state.trend = market.change + ((urlSeed % 9) - 4) / 10 >= 0 ? 'bullish' : 'bearish';
-      const riskAmount = Math.max(0, capital * ((riskMap[risk] || 1) / 100));
-      return { validation, riskAmount };
+    function updateStatus() {
+      const generated = new Date(state.data.generated);
+      const ageMin = Math.round((Date.now() - generated.getTime()) / 60000);
+      const age = ageMin < 90 ? `${ageMin} min ago` : ageMin < 2880 ? `${(ageMin / 60).toFixed(1)} hours ago` : `${Math.round(ageMin / 1440)} days ago`;
+      const stale = ageMin > STALE_MINUTES;
+      elements.dataStatus.textContent = `Data updated ${age}`;
+      elements.dataDetail.textContent = `${generated.toUTCString().slice(5, 22)} UTC. ${state.data.source}.`;
+      elements.dataError.textContent = stale ? 'This data is old. Markets may be closed, or the scheduled update is not running.' : '';
+      elements.statusText.textContent = stale ? 'Showing last saved market data' : 'Real market data loaded';
     }
 
-    function updateUI(showToast = false) {
-      const { validation, riskAmount } = calculateSignal();
-      const market = currentMarket();
-      const isBullish = state.trend === 'bullish';
-
-      if (validation.valid) { elements.urlError.textContent = ''; elements.domainName.textContent = validation.host; }
-      else { elements.urlError.textContent = validation.message; elements.domainName.textContent = 'Waiting for a valid product URL'; }
-
-      updateTabs();
-      updateWatchlist();
-      updateCategoryTabs();
-      updateMarketGrid();
+    function updateUI(message) {
+      if (!state.data) return;
+      updateLists();
       updateSetupGrid();
-      generateData();
-
-      const last = state.data[state.data.length - 1].close;
-      const prices = state.data.flatMap(d => [d.high, d.low]);
-      const range = Math.max(...prices) - Math.min(...prices);
-      const entry = last;
-      const tp = isBullish ? entry + range * 0.34 : entry - range * 0.34;
-      const sl = isBullish ? entry - range * 0.16 : entry + range * 0.16;
-      const rr = Math.abs(tp - entry) / Math.abs(entry - sl);
-      const category = currentCategoryForSymbol();
-
-      elements.fitFill.style.width = state.fit + '%';
-      elements.fitScore.textContent = state.fit + '%';
-      elements.chartSubtitle.textContent = `${state.symbol} • ${elements.timeframe.value.toUpperCase()} • ${categoryNames[category]}`;
-      elements.tpLabel.textContent = `TP ${formatPrice(tp)}`;
-      elements.entryLabel.textContent = `Entry ${formatPrice(entry)}`;
-      elements.slLabel.textContent = `SL ${formatPrice(sl)}`;
-      elements.trendTile.textContent = isBullish ? 'Bullish continuation' : 'Bearish distribution';
-      elements.smcTile.textContent = isBullish ? 'Sell-side sweep → demand' : 'Buy-side sweep → supply';
-      elements.slTile.textContent = isBullish ? 'Below demand zone' : 'Above supply zone';
-      elements.tpTile.textContent = isBullish ? 'Buy-side liquidity' : 'Sell-side liquidity';
-      elements.signalTitle.textContent = `${state.symbol} Ready Setup`;
-      elements.directionBadge.textContent = isBullish ? '▲ BUY' : '▼ SELL';
-      elements.directionBadge.className = `direction ${isBullish ? 'bullish' : 'bearish'}`;
-      const degrees = Math.round(state.confidence * 3.6);
-      elements.confidenceRing.style.background = `conic-gradient(${isBullish ? '#35ffe4' : '#ff4b6e'} 0deg, #9d5cff ${degrees}deg, rgba(255,255,255,0.08) ${degrees}deg 360deg)`;
-      elements.confidenceText.textContent = state.confidence + '%';
-      elements.bias4h.textContent = isBullish ? 'Bullish' : 'Bearish';
-      elements.bias1h.textContent = isBullish ? 'Bullish pullback' : 'Bearish retest';
-      elements.trigger15m.textContent = isBullish ? 'CHOCH + demand retest' : 'BOS + supply retest';
-      elements.riskAllocation.textContent = '$' + riskAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      elements.heroBias.textContent = isBullish ? 'Bullish' : 'Bearish';
-      elements.heroRR.textContent = `1:${rr.toFixed(1)}`;
-      elements.heroScore.textContent = state.confidence + '%';
+      updateStatus();
+      const symbol = state.symbol, timeframe = tf();
+      const a = analyse(symbol, timeframe);
+      const m = market(symbol);
+      elements.chartSubtitle.textContent = `${symbol} • ${timeframe.toUpperCase()} • ${categoryNames[m.category]} • last ${a ? a.r.candles.length : 0} finished candles`;
+      elements.signalTitle.textContent = `${symbol} on ${timeframe.toUpperCase()}`;
+      elements.riskAllocation.textContent = !a ? 'n/a' : a.direction ? `${money(a.riskUsd)} (${a.riskPct.toFixed(2)}%)` : 'No trade';
+      if (!a) {
+        ['tpLabel', 'entryLabel', 'slLabel'].forEach(id => { elements[id].textContent = ''; elements[id].style.display = 'none'; });
+        ['trendTile', 'smcTile', 'slTile', 'tpTile', 'bias4h', 'bias1h', 'trigger15m', 'positionSize', 'sizeNotes', 'heroBias', 'heroRR', 'heroScore', 'confidenceText'].forEach(id => { elements[id].textContent = 'n/a'; });
+        elements.directionBadge.textContent = 'NOT ENOUGH HISTORY';
+        elements.directionBadge.className = 'direction neutral';
+        drawChart();
+        return;
+      }
+      const r = a.r, rules = state.data.rules;
+      ['tpLabel', 'entryLabel'].forEach(id => { elements[id].style.display = ''; });
+      elements.tpLabel.textContent = `${rules.sma} SMA ${formatPrice(r.sma)}`;
+      elements.entryLabel.textContent = `Last ${formatPrice(r.close)}`;
+      elements.slLabel.textContent = a.stop === null ? '' : `Stop ${formatPrice(a.stop)}`;
+      elements.trendTile.textContent = `${trendText(r.trend)} (${r.mom >= 0 ? '+' : ''}${(r.mom * 100).toFixed(2)}% over ${rules.momentum} bars)`;
+      elements.smcTile.textContent = `${r.rsi.toFixed(1)} • ${r.signal ? (r.signal === 1 ? 'buy trigger' : 'sell trigger') : 'no trigger'}`;
+      elements.slTile.textContent = a.stop === null ? 'No trade, no stop' : `${formatPrice(a.stop)} (${rules.stop_atr} ATR)`;
+      elements.tpTile.textContent = `Trail ${formatPrice(a.trail)} (${rules.trail_atr} ATR)`;
+      elements.directionBadge.textContent = a.status;
+      elements.directionBadge.className = `direction ${a.tone}`;
+      const degrees = a.direction ? Math.round(a.met / a.total * 360) : 0;
+      elements.confidenceRing.style.background = `conic-gradient(${a.tone === 'bearish' ? '#ff4b6e' : '#35ffe4'} 0deg, #9d5cff ${degrees}deg, rgba(255,255,255,0.08) ${degrees}deg 360deg)`;
+      elements.confidenceText.textContent = a.direction ? `${a.met}/${a.total}` : '0/5';
+      const r4 = reading(symbol, '4h'), r1 = reading(symbol, '1h'), r15 = reading(symbol, '15m');
+      elements.bias4h.textContent = r4 ? trendText(r4.trend) : 'n/a';
+      elements.bias1h.textContent = r1 ? trendText(r1.trend) : 'n/a';
+      elements.trigger15m.textContent = triggerText(r15);
+      elements.positionSize.textContent = sizeText(a, symbol);
+      const notes = a.side ? a.side.notes.slice() : [];
+      if (a.news) notes.push('news today, entry delayed');
+      if (m.layers !== 'all') notes.push('carry and value rules apply to currencies only');
+      elements.sizeNotes.textContent = notes.length ? notes.join('; ') : 'Full size';
+      elements.heroBias.textContent = trendText(r.trend);
+      elements.heroRR.textContent = r.rsi.toFixed(1);
+      elements.heroScore.textContent = a.direction ? `${a.met}/${a.total}` : '0/5';
       drawChart();
-      if (showToast) showToastMessage(`${state.symbol} ready setup refreshed with ${state.confidence}% confidence.`);
+      if (message) showToastMessage(message);
     }
 
     function showToastMessage(message) {
@@ -904,45 +788,52 @@
       showToastMessage.timer = window.setTimeout(() => elements.toast.classList.remove('show'), 2600);
     }
 
-    function selectSymbol(symbol) {
-      state.symbol = symbol;
-      const category = currentCategoryForSymbol(symbol);
-      elements.assetClass.value = category;
-      updateUI(true);
+    async function loadData(announce) {
+      const results = await Promise.all(DATA_URLS.map(url =>
+        fetch(`${url}?t=${Date.now()}`, { cache: 'no-store' }).then(res => res.ok ? res.json() : null).catch(() => null)));
+      const newest = results.filter(d => d && d.markets).sort((x, y) => new Date(y.generated) - new Date(x.generated))[0];
+      if (!newest) {
+        if (!state.data) {
+          elements.dataStatus.textContent = 'No market data available';
+          elements.dataError.textContent = 'The data file could not be loaded. Nothing is shown, because this dashboard does not invent values.';
+          elements.statusText.textContent = 'Market data unavailable';
+        }
+        if (announce) showToastMessage('Could not load market data.');
+        return;
+      }
+      if (!Object.keys(newest.markets).length) return;
+      state.data = newest;
+      updateUI(announce ? 'Market data reloaded.' : '');
     }
 
-    elements.analyzeBtn.addEventListener('click', () => updateUI(true));
+    function selectSymbol(symbol, timeframe) {
+      state.symbol = symbol;
+      elements.assetClass.value = market(symbol).category;
+      if (timeframe) elements.timeframe.value = timeframe;
+      updateUI();
+    }
+
+    elements.analyzeBtn.addEventListener('click', () => loadData(true));
+    elements.refreshData.addEventListener('click', () => loadData(true));
     ['input', 'change'].forEach(eventName => {
-      elements.productUrl.addEventListener(eventName, () => updateUI(false));
-      elements.capital.addEventListener(eventName, () => updateUI(false));
-      elements.assetClass.addEventListener(eventName, () => updateUI(true));
-      elements.timeframe.addEventListener(eventName, () => updateUI(false));
-      elements.riskLevel.addEventListener(eventName, () => updateUI(false));
+      [elements.capital, elements.assetClass, elements.timeframe, elements.riskLevel].forEach(el => el.addEventListener(eventName, () => updateUI()));
     });
-    elements.tabs.addEventListener('click', event => { const button = event.target.closest('[data-symbol]'); if (button) selectSymbol(button.dataset.symbol); });
-    elements.watchlist.addEventListener('click', event => { const item = event.target.closest('[data-symbol]'); if (item) selectSymbol(item.dataset.symbol); });
-    elements.marketGrid.addEventListener('click', event => { const item = event.target.closest('[data-symbol]'); if (item) selectSymbol(item.dataset.symbol); });
-    elements.setupGrid.addEventListener('click', event => { const item = event.target.closest('[data-symbol]'); if (item) selectSymbol(item.dataset.symbol); });
+    [elements.tabs, elements.watchlist, elements.marketGrid, elements.setupGrid].forEach(container => {
+      container.addEventListener('click', event => {
+        const item = event.target.closest('[data-symbol]');
+        if (item && state.data) selectSymbol(item.dataset.symbol, item.dataset.tf);
+      });
+    });
     elements.categoryTabs.addEventListener('click', event => {
       const tab = event.target.closest('[data-category]');
-      if (!tab) return;
+      if (!tab || !state.data) return;
       elements.assetClass.value = tab.dataset.category;
-      state.symbol = activeMarketList()[0].symbol;
-      updateUI(true);
+      updateUI();
     });
-    elements.scrollToChecker.addEventListener('click', () => document.getElementById('checker').scrollIntoView({ behavior: 'smooth', block: 'center' }));
-    elements.randomizeMarket.addEventListener('click', () => {
-      const classes = Object.keys(markets);
-      const randomClass = classes[Math.floor(Math.random() * classes.length)];
-      elements.assetClass.value = randomClass;
-      const list = markets[randomClass];
-      state.symbol = list[Math.floor(Math.random() * list.length)].symbol;
-      elements.productUrl.value = ['https://tradefada-smc.com', 'https://tradefada-terminal.com', 'https://tradefada-signals.com'][Math.floor(Math.random() * 3)];
-      elements.timeframe.value = ['15m', '1h', '4h', '1d'][Math.floor(Math.random() * 4)];
-      updateUI(true);
-    });
+    elements.scrollToChecker.addEventListener('click', () => $('checker').scrollIntoView({ behavior: 'smooth', block: 'center' }));
     window.addEventListener('resize', () => drawChart());
-    updateUI(false);
+    loadData(false);
+    window.setInterval(() => loadData(false), REFRESH_MS);
   </script>
 </body>
 </html>
