@@ -8,6 +8,9 @@ on:
   schedule:
     - cron: "3,18,33,48 * * * *"
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["fx_strategy/**", ".github/workflows/update-dashboard-data.yml"]
 
 permissions:
   contents: write

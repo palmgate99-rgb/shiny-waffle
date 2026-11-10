@@ -206,6 +206,7 @@ class Backtest:
         self.skipped = {"open risk limit": 0, "USD direction limit": 0, "monthly loss stop": 0,
                         "deferred for news": 0, "dropped after news": 0}
         pending: dict[str, int] = {}
+        deferred: set[str] = set()
         last_close: dict[str, float] = {}
         equity = cfg.start_equity
         month, month_start_equity, month_blocked = None, equity, False
@@ -228,9 +229,12 @@ class Backtest:
                 if pair not in bars:
                     continue
                 if self._is_event_day(pair, date):
-                    self.skipped["deferred for news"] += 1
-                    continue  # re-checked at tonight's close
+                    if pair not in deferred:  # count each delayed signal once, not once per bar
+                        deferred.add(pair)
+                        self.skipped["deferred for news"] += 1
+                    continue  # re-checked at each close until the news day has passed
                 del pending[pair]
+                deferred.discard(pair)
                 signal_bar = prev_bar[pair]
                 if month_blocked:
                     self.skipped["monthly loss stop"] += 1
@@ -288,6 +292,7 @@ class Backtest:
                 elif pair in pending:
                     if bar["trend"] != pending[pair]:  # setup no longer holds after the release
                         del pending[pair]
+                        deferred.discard(pair)
                         self.skipped["dropped after news"] += 1
                 elif bar["signal"] != 0:
                     pending[pair] = int(bar["signal"])

@@ -128,19 +128,22 @@ def build(previous: dict | None = None, pause: float = 0.4) -> dict:
     for symbol, (ticker, label, category) in MARKETS.items():
         try:
             frames, meta = yahoo.candles(ticker, now)
-            tfs = {tf: reading(cfg, symbol, frames[tf], macro) for tf in TIMEFRAMES if len(frames[tf]) > cfg.sma_days}
-            if not tfs:
+            tfs = {tf: reading(cfg, symbol, frames[tf], macro) for tf in TIMEFRAMES
+                   if len(frames[tf]) > max(cfg.sma_days, cfg.momentum_days) + 1}
+            if not tfs or frames["15m"].empty or frames["1h"].empty:
                 raise RuntimeError("not enough history")
             hourly = frames["1h"]["close"]
             earlier = hourly[hourly.index.normalize() < hourly.index[-1].normalize()]
-            price = frames["15m"]["close"].iloc[-1]
+            price = meta.get("regularMarketPrice") or frames["15m"]["close"].iloc[-1]
+            traded = meta.get("regularMarketTime")
+            price_time = pd.Timestamp(traded, unit="s") if traded else frames["15m"].index[-1]
             last_price[symbol] = price
             markets[symbol] = {
                 "label": label, "category": category, "ticker": ticker,
                 "currency": meta.get("currency", "USD"),
                 "layers": "all" if category == "currencies" else "technical",
                 "price": clean(price),
-                "price_time": frames["15m"].index[-1].isoformat() + "Z",
+                "price_time": price_time.isoformat() + "Z",
                 "change_pct": clean((price / earlier.iloc[-1] - 1) * 100, 3) if len(earlier) else None,
                 "tf": tfs,
             }

@@ -513,7 +513,8 @@
     // Real market data. The file is produced by fx_strategy/export_dashboard.py on a schedule.
     const DATA_URLS = [
       'dashboard_data.json',
-      'https://raw.githubusercontent.com/palmgate99-rgb/shiny-waffle/dashboard-data/dashboard_data.json'
+      'https://raw.githubusercontent.com/palmgate99-rgb/shiny-waffle/dashboard-data/dashboard_data.json',
+      'https://raw.githubusercontent.com/palmgate99-rgb/shiny-waffle/main/dashboard_data.json'
     ];
     const REFRESH_MS = 5 * 60 * 1000;
     const STALE_MINUTES = 45;
@@ -559,8 +560,9 @@
       const stop = direction ? r.close - direction * stopDistance : null;
       const riskPct = (RISK_PCT[elements.riskLevel.value] || 1) * (side ? side.mult : 1);
       const riskUsd = Math.max(0, Number(elements.capital.value) || 0) * riskPct / 100;
-      const perUnitUsd = stopDistance * (state.data.to_usd[m.currency] || 1);
-      const units = direction && perUnitUsd > 0 ? riskUsd / perUnitUsd : 0;
+      const toUsd = state.data.to_usd[m.currency];  // undefined when the conversion rate could not be loaded
+      const perUnitUsd = stopDistance * (toUsd || 0);
+      const units = !direction ? 0 : perUnitUsd > 0 ? riskUsd / perUnitUsd : null;
       const checks = direction ? [
         direction === 1 ? r.close > r.sma : r.close < r.sma,
         direction === 1 ? r.mom > 0 : r.mom < 0,
@@ -580,6 +582,7 @@
 
     function sizeText(a, symbol) {
       if (!a.direction) return 'No position';
+      if (a.units === null) return `Unavailable (no ${a.m.currency} to USD rate)`;
       if (symbol.includes('/')) return `${(a.units / 100000).toFixed(2)} lots (${Math.round(a.units).toLocaleString()} units)`;
       return `${a.units >= 100 ? Math.round(a.units).toLocaleString() : a.units.toFixed(2)} ${a.m.category === 'stocks' ? 'shares' : 'units'}`;
     }
@@ -600,7 +603,7 @@
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const width = rect.width, height = rect.height;
       ctx.clearRect(0, 0, width, height);
-      const a = state.data && analyse(state.symbol, tf());
+      const a = state.data && market() && analyse(state.symbol, tf());
       if (!a) return;
       const data = a.r.candles.map(c => ({ open: c[1], high: c[2], low: c[3], close: c[4], sma: c[5] }));
       const levels = data.flatMap(d => [d.high, d.low]).concat(data.map(d => d.sma).filter(v => v !== null));
@@ -662,7 +665,11 @@
       : `<span class="change ${m.change_pct >= 0 ? 'up' : 'down'}">${m.change_pct >= 0 ? '+' : ''}${m.change_pct.toFixed(2)}%</span>`;
 
     function updateLists() {
-      const list = marketsIn(elements.assetClass.value);
+      let list = marketsIn(elements.assetClass.value);
+      if (!list.length) {  // every market in this section failed to load, so fall back to one that has data
+        elements.assetClass.value = Object.values(state.data.markets)[0].category;
+        list = marketsIn(elements.assetClass.value);
+      }
       if (!list.some(item => item.symbol === state.symbol)) state.symbol = list[0].symbol;
       elements.tabs.innerHTML = list.slice(0, 6).map(item => `<button class="tab ${item.symbol === state.symbol ? 'active' : ''}" data-symbol="${esc(item.symbol)}">${esc(item.symbol)}</button>`).join('');
       elements.watchlist.innerHTML = list.map(item => `
@@ -735,8 +742,9 @@
       const m = market(symbol);
       elements.chartSubtitle.textContent = `${symbol} • ${timeframe.toUpperCase()} • ${categoryNames[m.category]} • last ${a ? a.r.candles.length : 0} finished candles`;
       elements.signalTitle.textContent = `${symbol} on ${timeframe.toUpperCase()}`;
-      elements.riskAllocation.textContent = a ? `${money(a.riskUsd)} (${a.riskPct.toFixed(2)}%)` : 'n/a';
+      elements.riskAllocation.textContent = !a ? 'n/a' : a.direction ? `${money(a.riskUsd)} (${a.riskPct.toFixed(2)}%)` : 'No trade';
       if (!a) {
+        ['tpLabel', 'entryLabel', 'slLabel'].forEach(id => { elements[id].textContent = ''; elements[id].style.display = 'none'; });
         ['trendTile', 'smcTile', 'slTile', 'tpTile', 'bias4h', 'bias1h', 'trigger15m', 'positionSize', 'sizeNotes', 'heroBias', 'heroRR', 'heroScore', 'confidenceText'].forEach(id => { elements[id].textContent = 'n/a'; });
         elements.directionBadge.textContent = 'NOT ENOUGH HISTORY';
         elements.directionBadge.className = 'direction neutral';
@@ -744,6 +752,7 @@
         return;
       }
       const r = a.r, rules = state.data.rules;
+      ['tpLabel', 'entryLabel'].forEach(id => { elements[id].style.display = ''; });
       elements.tpLabel.textContent = `${rules.sma} SMA ${formatPrice(r.sma)}`;
       elements.entryLabel.textContent = `Last ${formatPrice(r.close)}`;
       elements.slLabel.textContent = a.stop === null ? '' : `Stop ${formatPrice(a.stop)}`;
@@ -792,6 +801,7 @@
         if (announce) showToastMessage('Could not load market data.');
         return;
       }
+      if (!Object.keys(newest.markets).length) return;
       state.data = newest;
       updateUI(announce ? 'Market data reloaded.' : '');
     }
@@ -818,7 +828,6 @@
       const tab = event.target.closest('[data-category]');
       if (!tab || !state.data) return;
       elements.assetClass.value = tab.dataset.category;
-      state.symbol = marketsIn(tab.dataset.category)[0].symbol;
       updateUI();
     });
     elements.scrollToChecker.addEventListener('click', () => $('checker').scrollIntoView({ behavior: 'smooth', block: 'center' }));

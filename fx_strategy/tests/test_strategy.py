@@ -136,7 +136,37 @@ class Intraday(unittest.TestCase):
         df = self.hourly().iloc[:5]
         now = df.index[-1] + pd.Timedelta(minutes=20)
         self.assertEqual(len(yahoo.closed_bars(df, "1h", now)), 4)
-        self.assertEqual(len(yahoo.to_4h(df)), 2)
+
+    def test_closing_stub_is_dropped_when_market_is_shut(self):
+        from fx_strategy import yahoo
+        df = self.hourly().iloc[:5].copy()
+        stub_time = df.index[-1] + pd.Timedelta(minutes=30)  # flat row stamped at the close
+        df.loc[stub_time] = df["close"].iloc[-1]
+        later = stub_time + pd.Timedelta(days=2)
+        out = yahoo.closed_bars(df, "1h", later)
+        self.assertEqual(len(out), 5)
+        self.assertNotIn(stub_time, out.index)
+
+    def test_four_hour_candles_for_round_the_clock_markets(self):
+        from fx_strategy import yahoo
+        df = self.hourly().iloc[:30]  # starts at midnight
+        mid_block = df.index[-1] + pd.Timedelta(hours=1)
+        out = yahoo.to_4h(df, mid_block)
+        self.assertEqual(len(out), 7)  # the eighth block has only two finished hours
+        self.assertEqual(out["close"].iloc[0], df["close"].iloc[3])
+        self.assertEqual(out["high"].iloc[0], df["high"].iloc[:4].max())
+
+    def test_four_hour_candles_follow_the_session_for_stocks(self):
+        from fx_strategy import yahoo
+        stamps = [pd.Timestamp(d) + pd.Timedelta(hours=14.5 + h)
+                  for d in ("2026-11-05", "2026-11-06") for h in range(7)]
+        df = fill_ohlc(pd.DataFrame({"close": np.arange(1.0, 15.0)}, index=pd.DatetimeIndex(stamps)))
+        out = yahoo.to_4h(df, pd.Timestamp("2026-11-08"))
+        self.assertEqual([t.strftime("%d %H:%M") for t in out.index],
+                         ["05 14:30", "05 18:30", "06 14:30", "06 18:30"])
+        self.assertEqual(list(out["close"]), [4.0, 7.0, 11.0, 14.0])
+        during = yahoo.to_4h(df.iloc[:9], pd.Timestamp("2026-11-06 16:35"))
+        self.assertEqual(len(during), 2)  # the block that opened at 14:30 is still forming
 
     def test_engine_runs_on_hourly_bars(self):
         bt = Backtest({"EURUSD": self.hourly()}, cfg=quiet(spreads_pips={})).run()

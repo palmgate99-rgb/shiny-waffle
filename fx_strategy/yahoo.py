@@ -43,20 +43,51 @@ def fetch(ticker: str, interval: str, range_: str | None = None, retries: int = 
 
 
 def closed_bars(df: pd.DataFrame, timeframe: str, now: pd.Timestamp | None = None) -> pd.DataFrame:
-    """Drop the bar that is still forming, so signals only use finished candles."""
+    """Keep only finished candles, so signals never use a bar that is still forming.
+
+    Yahoo ends every response with one extra flat row that repeats the latest price.
+    While the market is open that row is stamped with the current time and the row
+    before it is the forming bar, so both fail the time test below. After the close
+    the flat row is stamped at the closing time and would pass as a finished candle,
+    so a flat final row is always removed. If a genuine final bar happens to be flat
+    it is only held back until the next bar arrives.
+    """
     now = now or pd.Timestamp.now(tz="UTC").tz_localize(None)
+    if len(df) and df["high"].iloc[-1] == df["low"].iloc[-1]:
+        df = df.iloc[:-1]
     return df[df.index + BAR[timeframe] <= now]
 
 
-def to_4h(hourly: pd.DataFrame) -> pd.DataFrame:
-    """Build four hour candles from one hour candles, in blocks that start at midnight UTC."""
-    return hourly.resample("4h").agg(
-        {"open": "first", "high": "max", "low": "min", "close": "last"}).dropna()
+def to_4h(hourly: pd.DataFrame, now: pd.Timestamp | None = None) -> pd.DataFrame:
+    """Build finished four hour candles from finished one hour candles.
+
+    Markets that trade around the clock use blocks that start at midnight UTC.
+    Markets with a daily session (stocks, cash indices) are grouped four hours at a
+    time from the session open, so the last candle of a day can be shorter. That is
+    how charting platforms draw four hour candles for those markets.
+    """
+    now = now or pd.Timestamp.now(tz="UTC").tz_localize(None)
+    if hourly.empty:
+        return hourly
+    day = hourly.index.normalize()
+    around_the_clock = hourly.groupby(day).size().median() >= 20
+    if around_the_clock:
+        key = hourly.index.floor("4h")
+    else:
+        block = hourly.groupby(day).cumcount() // 4
+        key = hourly.index.to_series().groupby([day, block.values]).transform("first").values
+    grouped = hourly.groupby(key)
+    out = grouped.agg({"open": "first", "high": "max", "low": "min", "close": "last"})
+    out.index = pd.DatetimeIndex(out.index)
+    if now < out.index[-1] + BAR["4h"] and (around_the_clock or grouped.size().iloc[-1] < 4):
+        out = out.iloc[:-1]  # the latest block is still forming
+    return out
 
 
 def candles(ticker: str, now: pd.Timestamp | None = None) -> tuple[dict, dict]:
-    """Closed 15 minute, 1 hour and 4 hour candles for one ticker, from two requests."""
+    """Finished 15 minute, 1 hour and 4 hour candles for one ticker, from two requests."""
+    now = now or pd.Timestamp.now(tz="UTC").tz_localize(None)
     m15, meta = fetch(ticker, "15m")
     h1, _ = fetch(ticker, "1h")
     h1 = closed_bars(h1, "1h", now)
-    return {"15m": closed_bars(m15, "15m", now), "1h": h1, "4h": closed_bars(to_4h(h1), "4h", now)}, meta
+    return {"15m": closed_bars(m15, "15m", now), "1h": h1, "4h": to_4h(h1, now)}, meta
