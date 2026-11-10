@@ -17,7 +17,7 @@ Base risk is 1% of equity per trade. The stop starts 2 ATR(14) from entry and tr
 
 ## Running it
 
-It needs Python 3.10 or later with pandas and numpy. matplotlib is optional and adds an equity chart.
+It needs Python 3.10 or later with pandas and numpy (`pip install -r fx_strategy/requirements.txt`). matplotlib is optional and adds an equity chart.
 
     python -m fx_strategy.download_data --out data      # free data from FRED
     python -m fx_strategy.run_backtest --data data --start 2000-01-01
@@ -25,6 +25,30 @@ It needs Python 3.10 or later with pandas and numpy. matplotlib is optional and 
     python -m unittest fx_strategy.tests.test_strategy
 
 The run prints summary statistics and writes `results/equity.csv` and `results/trades.csv`. The trade log records the size adjustments applied to each trade and the reason for each exit.
+
+## Dashboard feed
+
+`smart_money_market_checker.html` shows no generated values. It loads `dashboard_data.json`, which this command builds from finished 15 minute, 1 hour and 4 hour Yahoo Finance candles for 22 markets:
+
+    python -m fx_strategy.export_dashboard --out dashboard_data.json
+
+The same rules and the same parameters are applied to the candles of each timeframe, so the trend average is 200 candles and the momentum lookback is 252 candles whatever the candle length. A trigger stays on the dashboard for three finished candles. Carry and value adjustments apply to currency pairs only, because indices, metals and stocks have no interest rate differential or currency valuation in this model. Gold and silver are COMEX futures because Yahoo has no spot feed for them.
+
+The workflow in `.github/workflows/update-dashboard-data.yml` runs the export every 15 minutes and publishes the file on a branch called `dashboard-data`. The dashboard reads the copy beside it and the published copy and uses whichever is newer, so it also works when the HTML file is opened straight from disk. GitHub runs scheduled workflows only from the default branch, so the schedule starts once this code is merged to `main`. GitHub can delay scheduled runs, and it pauses them after 60 days without repository activity.
+
+### Intraday backtest
+
+    python -m fx_strategy.run_backtest --yahoo 1h --macro data
+
+Results on the six US dollar majors with Yahoo candles up to 10 November 2026, after estimated spreads and swap:
+
+| Timeframe | Period | Result | Worst drawdown | Trades | Average per trade |
+|---|---|---|---|---|---|
+| 15 minutes | 12 weeks | lost 18.9% | 19.4% | 113 | -0.24 R |
+| 1 hour | 2.8 years | lost 42.8% | 52.5% | 893 | -0.08 R |
+| 4 hours | 2.8 years | lost 0.6% | 15.8% | 264 | -0.02 R |
+
+The rules lose money on the two faster timeframes. Stops are a few pips wide there, so the spread takes a large share of every trade, and the rules trade far more often. The 15 minute sample is also too short to judge. The dashboard shows what the rules say on each timeframe; it is not evidence that following them is profitable.
 
 ## Using your own data
 

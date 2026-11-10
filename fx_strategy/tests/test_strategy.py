@@ -125,6 +125,39 @@ class Engine(unittest.TestCase):
         self.assertTrue((bt.trade_log["entry_date"] < bt.trade_log["exit_date"]).mean() > 0.9)
 
 
+class Intraday(unittest.TestCase):
+    def hourly(self, n=600):
+        idx = pd.date_range("2026-03-02", periods=n, freq="h")
+        closes = uptrend_with_dip(n=n, dip_at=500)
+        return fill_ohlc(pd.DataFrame({"close": closes}, index=idx))
+
+    def test_unfinished_bar_is_dropped(self):
+        from fx_strategy import yahoo
+        df = self.hourly().iloc[:5]
+        now = df.index[-1] + pd.Timedelta(minutes=20)
+        self.assertEqual(len(yahoo.closed_bars(df, "1h", now)), 4)
+        self.assertEqual(len(yahoo.to_4h(df)), 2)
+
+    def test_engine_runs_on_hourly_bars(self):
+        bt = Backtest({"EURUSD": self.hourly()}, cfg=quiet(spreads_pips={})).run()
+        ind = bt.ind["EURUSD"]
+        signal_at = ind.index[ind["signal"] == 1][0]
+        self.assertEqual(bt.open["EURUSD"].entry_date, signal_at + pd.Timedelta(hours=1))
+
+    def test_dashboard_reading_matches_the_rules(self):
+        from fx_strategy.export_dashboard import reading
+        df = self.hourly()
+        signal_at = add_indicators(df, Config()).query("signal == 1").index[0]
+        macro = {"rates": {"EUR": 1.0, "USD": 4.0}, "valuation": {"EUR": 0.3, "USD": 0.0}}
+        r = reading(Config(), "EUR/USD", df.loc[:signal_at], macro)
+        self.assertEqual((r["trend"], r["signal"], r["signal_age"]), (1, 1, 0))
+        self.assertEqual(r["long"]["notes"], ["pays swap", "overvalued", "vol spike"])
+        self.assertEqual(r["long"]["mult"], 0.125)
+        self.assertEqual(len(r["candles"]), 80)
+        stock = reading(Config(), "AAPL", df.loc[:signal_at], macro)
+        self.assertEqual(stock["long"]["notes"], ["vol spike"])
+
+
 class Calendar(unittest.TestCase):
     def test_first_fridays(self):
         events = first_friday_events("2024-01-01", "2024-03-31")

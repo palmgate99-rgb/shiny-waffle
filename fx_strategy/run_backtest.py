@@ -2,6 +2,7 @@
 
     python -m fx_strategy.run_backtest --demo            synthetic data, checks the code only
     python -m fx_strategy.run_backtest --data data       real data from a folder
+    python -m fx_strategy.run_backtest --yahoo 1h --macro data    intraday candles from Yahoo
 """
 
 from __future__ import annotations
@@ -20,6 +21,9 @@ def main():
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument("--data", help="folder with prices/, rates.csv, valuation.csv, events.csv")
     source.add_argument("--demo", action="store_true", help="use synthetic data")
+    source.add_argument("--yahoo", choices=["15m", "1h", "4h"],
+                        help="intraday Yahoo candles for the six USD majors (about 60 days of 15m, 2 years of 1h and 4h)")
+    parser.add_argument("--macro", help="folder holding rates.csv and valuation.csv, used with --yahoo")
     parser.add_argument("--out", default="results")
     parser.add_argument("--equity", type=float, default=10_000)
     parser.add_argument("--start", help="first date to trade, for example 2005-01-01")
@@ -28,6 +32,15 @@ def main():
     if args.demo:
         prices, rates, valuation, events = synthetic()
         print("SYNTHETIC DATA: these numbers only show that the code runs.\n")
+    elif args.yahoo:
+        from . import yahoo
+        from .data import PAIRS, _read
+        prices = {p: yahoo.candles(p + "=X")[0][args.yahoo] for p in PAIRS}
+        folder = Path(args.macro) if args.macro else None
+        rates = _read(folder / "rates.csv") if folder else None
+        valuation = _read(folder / "valuation.csv") if folder else None
+        events = first_friday_events(min(d.index[0] for d in prices.values()),
+                                     max(d.index[-1] for d in prices.values()))
     else:
         prices, rates, valuation, events = load_folder(args.data)
         if events is None:

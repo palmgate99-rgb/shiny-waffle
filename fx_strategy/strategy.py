@@ -95,6 +95,25 @@ def add_indicators(df: pd.DataFrame, cfg: Config) -> pd.DataFrame:
     return out
 
 
+def risk_adjustment(cfg: Config, carry: float, bought_valuation: float, vol_ratio: float):
+    """Layers 2 and 3 plus the volatility filter, shared by the backtest and the dashboard.
+
+    carry is the annual percent the trade earns after the broker markup. Any input
+    may be NaN, which means the data is missing and that adjustment is skipped.
+    """
+    mult, notes = 1.0, []
+    if carry < 0:
+        mult *= 0.5
+        notes.append("pays swap")
+    if bought_valuation > cfg.overvalued_limit:
+        mult *= 0.5
+        notes.append("overvalued")
+    if vol_ratio > cfg.vol_spike_ratio:
+        mult *= 0.5
+        notes.append("vol spike")
+    return mult, notes
+
+
 @dataclass
 class Position:
     pair: str
@@ -112,7 +131,7 @@ class Position:
 
 
 class Backtest:
-    """Daily bar portfolio backtest with a USD account.
+    """Bar by bar portfolio backtest with a USD account. Works on daily or intraday bars.
 
     prices     dict of pair -> DataFrame indexed by date with open, high, low, close
     rates      DataFrame of annual interest rates in percent, one column per currency
@@ -154,23 +173,14 @@ class Backtest:
         return direction * (base - quote) - self.cfg.swap_markup_pct
 
     def _is_event_day(self, pair, date):
-        return (date, pair[:3]) in self.events or (date, pair[3:]) in self.events
+        day = date.normalize()
+        return (day, pair[:3]) in self.events or (day, pair[3:]) in self.events
 
     def risk_multiplier(self, pair, direction, date, vol_ratio):
         """Layers 2 and 3 plus the volatility filter. Missing data means no adjustment."""
-        mult, notes = 1.0, []
-        carry = self._carry(pair, direction, date)
-        if carry < 0:
-            mult *= 0.5
-            notes.append("pays swap")
         bought = pair[:3] if direction == 1 else pair[3:]
-        if self._lookup(self.valuation, date, bought) > self.cfg.overvalued_limit:
-            mult *= 0.5
-            notes.append("overvalued")
-        if vol_ratio > self.cfg.vol_spike_ratio:
-            mult *= 0.5
-            notes.append("vol spike")
-        return mult, notes
+        return risk_adjustment(self.cfg, self._carry(pair, direction, date),
+                               self._lookup(self.valuation, date, bought), vol_ratio)
 
     def _close(self, pos, date, raw_price, reason):
         half_spread = self.cfg.spreads_pips.get(pos.pair, 2.0) * pip_size(pos.pair) / 2
@@ -206,7 +216,7 @@ class Backtest:
             if (date.year, date.month) != month:
                 month, month_start_equity, month_blocked = (date.year, date.month), equity, False
             bars = {p: self.ind[p].loc[date] for p in self.pairs if date in self.ind[p].index}
-            days = 0 if prev_date is None else (date - prev_date).days
+            days = 0 if prev_date is None else (date - prev_date).total_seconds() / 86400
 
             # 1. Exits flagged at the previous close are filled at today's open.
             for pair, pos in list(self.open.items()):
@@ -300,6 +310,7 @@ class Backtest:
 
 def performance(equity: pd.Series, trades: pd.DataFrame) -> dict:
     """Summary statistics. Sharpe uses daily returns with a zero risk free rate."""
+    equity = equity.resample("1D").last().dropna()  # intraday curves are measured once a day
     daily = equity.pct_change().dropna()
     years = max((equity.index[-1] - equity.index[0]).days / 365.25, 1e-9)
     drawdown = equity / equity.cummax() - 1
