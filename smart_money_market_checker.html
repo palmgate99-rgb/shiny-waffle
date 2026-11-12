@@ -548,6 +548,24 @@
 
     // Everything below is read from the data file. Nothing is generated in the browser.
     // Fail closed on old, future, missing or failed feed observations.
+    function validData(d) {
+      if (!d || !Number.isFinite(Date.parse(d.generated)) || !d.markets ||
+          !Array.isArray(d.timeframes) || !d.timeframes.length ||
+          !d.timeframes.every(t => ['15m','1h','4h'].includes(t)) ||
+          !Array.isArray(d.news_today) || !d.rules || !d.to_usd ||
+          !['stop_atr','trail_atr','sma','momentum'].every(k => Number.isFinite(d.rules[k]))) return false;
+      const entries = Object.entries(d.markets);
+      return entries.length > 0 && entries.every(([symbol,m]) =>
+        m && typeof m.label === 'string' && categoryNames[m.category] && m.tf &&
+        Number.isFinite(m.price) && Object.entries(m.tf).every(([t,r]) =>
+          ['15m','1h','4h'].includes(t) && r && Number.isFinite(Date.parse(r.bar_time)) &&
+          ['close','sma','mom','rsi','atr','trend','signal'].every(k => Number.isFinite(r[k])) &&
+          [-1,0,1].includes(r.trend) && [-1,0,1].includes(r.signal) && r.long && r.short &&
+          Array.isArray(r.candles) && r.candles.length > 0 && r.candles.every(c =>
+            Array.isArray(c) && c.length >= 6 && c.slice(0,5).every(Number.isFinite) &&
+            (c[5] === null || Number.isFinite(c[5])))));
+    }
+
     function freshness(m, r, timeframe, now = Date.now()) {
       const duration = { '15m': 900000, '1h': 3600000, '4h': 14400000 }[timeframe];
       const generated = Date.parse(state.data.generated);
@@ -720,7 +738,12 @@
       elements.dataStatus.textContent = `Data updated ${age}`;
       elements.dataDetail.textContent = `${generated.toUTCString().slice(5, 22)} UTC. ${state.data.source}.`;
       elements.dataError.textContent = stale ? 'This data is old. Markets may be closed, or the scheduled update is not running.' : '';
-      elements.statusText.textContent = stale ? 'Showing last saved market data' : 'Real market data loaded';
+      const selected = market();
+      const selectedReading = reading();
+      const selectedFresh = selected && selectedReading && freshness(selected, selectedReading, tf());
+      const failed = Object.values(state.data.markets).filter(m => m.stale).length;
+      elements.statusText.textContent = selectedFresh ? 'Selected market: indicative data current' : 'Selected market: stale/unavailable';
+      if (failed) elements.dataError.textContent += ` ${failed} market(s) failed the last refresh; retained data is historical.`;
     }
 
     function updateUI(message) {
@@ -782,7 +805,7 @@
     async function loadData(announce) {
       const results = await Promise.all(DATA_URLS.map(url =>
         fetch(`${url}?t=${Date.now()}`, { cache: 'no-store', signal: AbortSignal.timeout(10000) }).then(res => res.ok ? res.json() : null).catch(() => null)));
-      const newest = results.filter(d => d && d.markets).sort((x, y) => new Date(y.generated) - new Date(x.generated))[0];
+      const newest = results.filter(validData).sort((x, y) => new Date(y.generated) - new Date(x.generated))[0];
       if (!newest) {
         if (state.data) updateUI();
         if (!state.data) {
