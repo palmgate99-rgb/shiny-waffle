@@ -3,7 +3,7 @@
 This branch builds on PR #1, not main. The static monitoring dashboard displays saved Yahoo data. It is NOT a qualified trading-signal engine. No Eightcap account or execution integration exists.
 
 ## Existing Yahoo pipeline
-Merge reviewed changes into the default branch to activate the scheduled GitHub Action. Inspect the first successful run and dashboard-data branch; schedules can be delayed. Verify per-market candle and price timestamps, not just JSON generation time. Yahoo is unofficial, may be delayed, and is not an Eightcap feed. The root URL is routed by vercel.json.
+Automatic public market-data publishing is DISABLED. The workflow only runs tests; it has read-only repository permission. Do not re-enable publication until provider redistribution rights are verified. The existing checked-in historical snapshot is not a live feed. A private backend/cache must replace the public JSON delivery path for live use. Yahoo is unofficial and not an Eightcap feed.
 
 ## Optional private TickerLayer adapter
 `api/feed.js` is a Vercel Node handler, tested with mocks only. ChatGPT's existing TickerLayer connection is not a transferable deployment credential. Before enabling:
