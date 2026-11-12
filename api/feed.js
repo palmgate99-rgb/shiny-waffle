@@ -34,7 +34,7 @@ async function handler(req,res){
       const [rawQuote,rawBars]=await Promise.all([get(`/forex/quote/${pair}`),get(`/forex/agg/${pair}/${n}/${unit}/${start}/${end}?sort=desc&limit=100`)]);
       const received=Date.now();
       const quote=normalizeQuote(rawQuote,pair,received),bars=normalizeBars(rawBars,pair,duration,received);
-      data={observed_ms:now,quote,bars};cache.set(cacheKey,data);
+      data={observed_ms:received,quote,bars};cache.set(cacheKey,data);
     }
     const quote={...data.quote,age_ms:now-data.quote.timestamp,fresh:now-data.quote.timestamp<=120000};
     const duration=INTERVALS[tf][2],last=data.bars.at(-1);
