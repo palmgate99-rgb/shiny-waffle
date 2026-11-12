@@ -882,7 +882,9 @@
   function freshness(){
     if(!last)return;
     const fresh=Date.now()-last.quote.timestamp<=120000 && last.status==='indicative';
-    status.textContent=(fresh?'Indicative quote current':'STALE quote, do not trade')+(last.candles_fresh?' · closed candles available':' · candles stale/unavailable');
+    const duration={'15m':900000,'1h':3600000,'4h':14400000}[last.timeframe];
+    const latest=last.bars.at(-1);const candlesFresh=last.candles_fresh&&latest&&Date.now()-(latest.time+duration)<=duration+120000;
+    status.textContent=(fresh?'Indicative quote current':'STALE quote, do not trade')+(candlesFresh?' · closed candles available':' · candles stale/unavailable');
     quote.textContent=`${last.pair} bid ${last.quote.bid} / ask ${last.quote.ask} · TickerLayer`;
     time.textContent=`Quote event: ${new Date(last.quote.timestamp).toISOString()} · observed: ${last.observed_at} · ${last.timeframe} latest bar start: ${last.bars.length?new Date(last.bars.at(-1).time).toISOString():'none'}`;
   }
