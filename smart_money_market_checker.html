@@ -415,6 +415,21 @@
       </aside>
     </section>
 
+    <section class="panel" style="margin-bottom:24px" aria-label="Private live market feed">
+      <h3>Private TickerLayer feed</h3>
+      <p>Separate from the historical Yahoo charts below. Enter your dashboard access passphrase, NOT your provider API key. It stays in memory only until disconnect or page close.</p>
+      <div class="two-col">
+        <div><label for="privateToken">Dashboard access passphrase</label><input id="privateToken" type="password" autocomplete="off" /></div>
+        <div><label for="privatePair">Pair</label><select id="privatePair"><option>EURUSD</option><option>GBPUSD</option><option>USDJPY</option><option>USDCAD</option><option>USDCHF</option><option>AUDUSD</option><option>NZDUSD</option></select></div>
+        <div><label for="privateTf">Closed candles</label><select id="privateTf"><option value="15m">M15</option><option value="1h">H1</option><option value="4h">H4</option></select></div>
+      </div>
+      <button id="connectPrivate">Connect private feed</button> <button id="disconnectPrivate" class="secondary">Disconnect</button>
+      <p id="privateStatus" role="status">Not connected. No live prices loaded.</p>
+      <p id="privateQuote"></p><p id="privateTime"></p>
+      <canvas id="privateCanvas" width="1000" height="300" style="width:100%;height:300px" aria-label="Private closed-candle chart"></canvas>
+      <p>Indicative OTC feed, not Eightcap prices. Refreshes once per minute while connected. No trades or qualified signals. A closed market may show stale data.</p>
+    </section>
+
     <section class="dashboard" aria-label="Market dashboard results">
       <div class="panel">
         <div class="panel-heading">
@@ -851,5 +866,44 @@
     window.setInterval(() => loadData(false), REFRESH_MS);
     window.setInterval(() => updateUI(), 30000); // expire displayed observations even if fetch hangs
   </script>
+<script>
+(() => {
+  const byId=id=>document.getElementById(id);
+  let token='',last=null,inflight=false,controller=null,generation=0;
+  const status=byId('privateStatus'),quote=byId('privateQuote'),time=byId('privateTime'),canvas=byId('privateCanvas'),context=canvas.getContext('2d');
+  function clear(){last=null;quote.textContent='';time.textContent='';context.clearRect(0,0,canvas.width,canvas.height);}
+  function paint(d){
+    const bars=d.bars;context.clearRect(0,0,canvas.width,canvas.height);
+    if(!bars.length)return;
+    const lo=Math.min(...bars.map(b=>b.low)),hi=Math.max(...bars.map(b=>b.high)),range=hi-lo||1;
+    const y=v=>280-(v-lo)/range*260,step=canvas.width/bars.length;
+    bars.forEach((b,i)=>{const x=(i+.5)*step;context.fillStyle=context.strokeStyle=b.close>=b.open?'#48ff9b':'#ff4b6e';context.beginPath();context.moveTo(x,y(b.high));context.lineTo(x,y(b.low));context.stroke();context.fillRect(x-step*.3,Math.min(y(b.open),y(b.close)),Math.max(1,step*.6),Math.max(1,Math.abs(y(b.open)-y(b.close))));});
+  }
+  function freshness(){
+    if(!last)return;
+    const fresh=Date.now()-last.quote.timestamp<=120000 && last.status==='indicative';
+    status.textContent=(fresh?'Indicative quote current':'STALE quote, do not trade')+(last.candles_fresh?' · closed candles available':' · candles stale/unavailable');
+    quote.textContent=`${last.pair} bid ${last.quote.bid} / ask ${last.quote.ask} · TickerLayer`;
+    time.textContent=`Quote event: ${new Date(last.quote.timestamp).toISOString()} · observed: ${last.observed_at} · ${last.timeframe} latest bar start: ${last.bars.length?new Date(last.bars.at(-1).time).toISOString():'none'}`;
+  }
+  async function refresh(){
+    if(!token||inflight)return;const current=generation;inflight=true;controller=new AbortController();const timer=setTimeout(()=>controller.abort(),12000);
+    try{
+      const pair=byId('privatePair').value,tf=byId('privateTf').value;
+      const response=await fetch(`/api/feed?pair=${encodeURIComponent(pair)}&timeframe=${encodeURIComponent(tf)}`,{headers:{Authorization:`Bearer ${token}`},cache:'no-store',signal:controller.signal});
+      if(current!==generation)return;
+      if(!response.ok){clear();status.textContent=response.status===401?'Access passphrase not accepted.':response.status===503?'Server feed configuration incomplete.':response.status===429?'Provider quota reached. Refresh paused until next minute.':'Feed unavailable. No live data shown.';return;}
+      const d=await response.json();if(!token||current!==generation)return;
+      if(!d.quote||!Array.isArray(d.bars)||![d.quote.bid,d.quote.ask,d.quote.timestamp].every(Number.isFinite))throw Error('schema');
+      last=d;paint(d);freshness();
+    }catch(e){if(current!==generation)return;clear();status.textContent=token?'Feed unavailable. No live data shown.':'Disconnected.';}
+    finally{clearTimeout(timer);inflight=false;controller=null;if(current!==generation&&token)refresh();}
+  }
+  byId('connectPrivate').addEventListener('click',()=>{generation++;token=byId('privateToken').value;byId('privateToken').value='';clear();status.textContent=token?'Connecting securely…':'Enter your separate dashboard passphrase.';refresh();});
+  byId('disconnectPrivate').addEventListener('click',()=>{generation++;token='';byId('privateToken').value='';controller?.abort();clear();status.textContent='Disconnected. Private feed cleared.';});
+  ['privatePair','privateTf'].forEach(id=>byId(id).addEventListener('change',()=>{generation++;clear();refresh();}));
+  setInterval(refresh,60000);setInterval(freshness,10000);
+})();
+</script>
 </body>
 </html>
