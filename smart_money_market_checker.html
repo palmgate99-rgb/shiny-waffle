@@ -346,9 +346,9 @@
     <section class="hero">
       <div class="hero-card">
         <div class="eyebrow"><span class="spark"></span>Major Currencies • Indices • Metals • Stocks • 15M / 1H / 4H</div>
-        <h2>Find <span class="gradient-text">trend pullback setups</span> with entry, stop, and position size.</h2>
+        <h2>Monitor <span class="gradient-text">market structure</span> with transparent data status.</h2>
         <p class="hero-copy">
-          Tradefada reads finished 15 minute, 1 hour and 4 hour candles and applies one rule set: trade only with the trend, enter on an RSI pullback, cut size when carry, valuation or volatility is against you, and stand aside on news days. Every number on this page comes from market data.
+          Review saved finished 15 minute, 1 hour and 4 hour candles from Yahoo Finance. These are indicative technical readings, not broker quotes or qualified trades. No order execution, verified event calendar or performance guarantee is provided.
         </p>
         <div class="hero-actions">
           <button id="scrollToChecker">Open Market Scanner</button>
@@ -365,7 +365,7 @@
         <div class="checker-title">
           <div>
             <h3>Market Setup Scanner</h3>
-            <p>Choose a market section, timeframe, risk level and account size. Stops and position sizes are worked out from real volatility.</p>
+            <p>Choose a market and timeframe. Trade sizing stays disabled until a complete, independently validated setup is available.</p>
           </div>
           <span class="badge">Real data</span>
         </div>
@@ -446,7 +446,7 @@
         <div class="panel">
           <div class="panel-heading">
             <div>
-              <h3>Signal Breakdown</h3>
+              <h3>Technical Context</h3>
               <span>Rule readings for the selected market</span>
             </div>
           </div>
@@ -495,8 +495,8 @@
     <section class="panel setups-section">
       <div class="panel-heading">
         <div>
-          <h3>Ready Setups</h3>
-          <span>RSI pullback triggers fired on the last three finished candles, across all timeframes</span>
+          <h3>Qualified Setups</h3>
+          <span>Signal validation status</span>
         </div>
       </div>
       <div class="setup-grid" id="setupGrid"></div>
@@ -547,12 +547,27 @@
     const money = value => '$' + value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
     // Everything below is read from the data file. Nothing is generated in the browser.
+    // Fail closed on old, future, missing or failed feed observations.
+    function freshness(m, r, timeframe, now = Date.now()) {
+      const duration = { '15m': 900000, '1h': 3600000, '4h': 14400000 }[timeframe];
+      const generated = Date.parse(state.data.generated);
+      const bar = Date.parse(r.bar_time);
+      const price = Date.parse(m.price_time);
+      if (m.stale || !duration || ![generated, bar, price].every(Number.isFinite)) return false;
+      return generated <= now + 60000 && now - generated <= STALE_MINUTES * 60000 &&
+        price <= now + 60000 && now - price <= STALE_MINUTES * 60000 &&
+        bar + duration <= now && now - (bar + duration) <= duration + STALE_MINUTES * 60000;
+    }
+
     function analyse(symbol, timeframe) {
       const m = market(symbol);
       const r = reading(symbol, timeframe);
       if (!r) return null;
       const rules = state.data.rules;
-      const direction = r.signal || r.trend;
+      const fresh = freshness(m, r, timeframe);
+      // Technical context only: official calendar, COT, structure and cost-adjusted
+      // reward/risk are not integrated. Never present these labels as qualified trades.
+      const direction = 0;
       const side = direction === 1 ? r.long : direction === -1 ? r.short : null;
       const currencies = symbol.includes('/') ? symbol.split('/') : [m.currency];
       const news = state.data.news_today.some(c => currencies.includes(c));
@@ -571,12 +586,13 @@
         !news
       ] : [];
       let status;
-      if (r.signal === 1) status = 'BUY SIGNAL';
-      else if (r.signal === -1) status = 'SELL SIGNAL';
+      if (!fresh) status = 'STALE DATA · NO SIGNAL';
+      else if (r.signal === 1) status = 'BULLISH TECHNICAL WATCH';
+      else if (r.signal === -1) status = 'BEARISH TECHNICAL WATCH';
       else if (r.trend === 1) status = 'UPTREND, WAITING';
       else if (r.trend === -1) status = 'DOWNTREND, WAITING';
       else status = 'NO TRADE';
-      return { m, r, direction, side, news, stop, stopDistance, trail: rules.trail_atr * r.atr, riskPct, riskUsd, units,
+      return { m, r, fresh, direction, side, news, stop, stopDistance, trail: rules.trail_atr * r.atr, riskPct, riskUsd, units,
         met: checks.filter(Boolean).length, total: 5, status, tone: direction === 1 ? 'bullish' : direction === -1 ? 'bearish' : 'neutral' };
     }
 
@@ -693,39 +709,14 @@
     }
 
     function updateSetupGrid() {
-      const found = [];
-      Object.keys(state.data.markets).forEach(symbol => state.data.timeframes.forEach(timeframe => {
-        const a = analyse(symbol, timeframe);
-        if (a && a.r.signal) found.push({ symbol, timeframe, a });
-      }));
-      found.sort((x, y) => x.a.r.signal_age - y.a.r.signal_age || y.a.met - x.a.met);
-      if (!found.length) {
-        elements.setupGrid.innerHTML = '<p class="empty-note">No market has fired an RSI pullback trigger on its last three finished candles. That is normal: the rules wait for a pullback inside a trend, so most of the time there is nothing to do.</p>';
-        return;
-      }
-      elements.setupGrid.innerHTML = found.map(({ symbol, timeframe, a }) => `
-        <article class="setup-card" data-symbol="${esc(symbol)}" data-tf="${timeframe}">
-          <span class="setup-pill ${a.direction === 1 ? 'buy' : 'sell'}">${a.direction === 1 ? 'BUY' : 'SELL'} TRIGGER • ${timeframe.toUpperCase()}</span>
-          <h4>${esc(symbol)}</h4>
-          <p>${esc(a.m.label)}. RSI recrossed ${a.direction === 1 ? 'above ' + state.data.rules.rsi_long : 'below ' + state.data.rules.rsi_short} ${a.r.signal_age === 0 ? 'on the last finished candle' : ago(a.r.signal_age, 'candle')} at ${formatPrice(a.r.signal_price, symbol)}.${a.news ? ' Scheduled news today: the rules delay entry.' : ''}</p>
-          <div class="setup-meta">
-            <div><span>Last</span><strong>${formatPrice(a.r.close, symbol)}</strong></div>
-            <div><span>Stop</span><strong>${formatPrice(a.stop, symbol)}</strong></div>
-            <div><span>Trail</span><strong>${formatPrice(a.trail, symbol)}</strong></div>
-          </div>
-          <div class="setup-meta">
-            <div><span>Risk</span><strong>${a.riskPct.toFixed(2)}%</strong></div>
-            <div><span>Rules met</span><strong>${a.met}/${a.total}</strong></div>
-            <div><span>Size cut</span><strong>${a.side.notes.length ? esc(a.side.notes.join(', ')) : 'none'}</strong></div>
-          </div>
-        </article>`).join('');
+      elements.setupGrid.innerHTML = '<p class="empty-note">No qualified trade signals. This board shows indicative Yahoo Finance technical context only. TradingView verification, a current official event calendar, CFTC positioning, structure-based stops and realistic targets after costs are not yet integrated. Technical triggers are not trade recommendations. No Eightcap account is connected.</p>';
     }
 
     function updateStatus() {
       const generated = new Date(state.data.generated);
       const ageMin = Math.round((Date.now() - generated.getTime()) / 60000);
       const age = ageMin < 90 ? `${ageMin} min ago` : ageMin < 2880 ? `${(ageMin / 60).toFixed(1)} hours ago` : `${Math.round(ageMin / 1440)} days ago`;
-      const stale = ageMin > STALE_MINUTES;
+      const stale = !Number.isFinite(ageMin) || ageMin < -1 || ageMin > STALE_MINUTES;
       elements.dataStatus.textContent = `Data updated ${age}`;
       elements.dataDetail.textContent = `${generated.toUTCString().slice(5, 22)} UTC. ${state.data.source}.`;
       elements.dataError.textContent = stale ? 'This data is old. Markets may be closed, or the scheduled update is not running.' : '';
@@ -740,7 +731,7 @@
       const symbol = state.symbol, timeframe = tf();
       const a = analyse(symbol, timeframe);
       const m = market(symbol);
-      elements.chartSubtitle.textContent = `${symbol} • ${timeframe.toUpperCase()} • ${categoryNames[m.category]} • last ${a ? a.r.candles.length : 0} finished candles`;
+      elements.chartSubtitle.textContent = `${symbol} • ${timeframe.toUpperCase()} • ${categoryNames[m.category]} • last ${a ? a.r.candles.length : 0} finished candles • ${a ? a.r.bar_time + ' (bar start UTC)' : 'unavailable'} • ${a && a.fresh ? 'indicative' : 'STALE'}`;
       elements.signalTitle.textContent = `${symbol} on ${timeframe.toUpperCase()}`;
       elements.riskAllocation.textContent = !a ? 'n/a' : a.direction ? `${money(a.riskUsd)} (${a.riskPct.toFixed(2)}%)` : 'No trade';
       if (!a) {
@@ -757,9 +748,9 @@
       elements.entryLabel.textContent = `Last ${formatPrice(r.close)}`;
       elements.slLabel.textContent = a.stop === null ? '' : `Stop ${formatPrice(a.stop)}`;
       elements.trendTile.textContent = `${trendText(r.trend)} (${r.mom >= 0 ? '+' : ''}${(r.mom * 100).toFixed(2)}% over ${rules.momentum} bars)`;
-      elements.smcTile.textContent = `${r.rsi.toFixed(1)} • ${r.signal ? (r.signal === 1 ? 'buy trigger' : 'sell trigger') : 'no trigger'}`;
+      elements.smcTile.textContent = a.fresh ? `${r.rsi.toFixed(1)} • technical context only` : 'Stale/unavailable · no trigger';
       elements.slTile.textContent = a.stop === null ? 'No trade, no stop' : `${formatPrice(a.stop)} (${rules.stop_atr} ATR)`;
-      elements.tpTile.textContent = `Trail ${formatPrice(a.trail)} (${rules.trail_atr} ATR)`;
+      elements.tpTile.textContent = 'No validated target';
       elements.directionBadge.textContent = a.status;
       elements.directionBadge.className = `direction ${a.tone}`;
       const degrees = a.direction ? Math.round(a.met / a.total * 360) : 0;
@@ -768,12 +759,12 @@
       const r4 = reading(symbol, '4h'), r1 = reading(symbol, '1h'), r15 = reading(symbol, '15m');
       elements.bias4h.textContent = r4 ? trendText(r4.trend) : 'n/a';
       elements.bias1h.textContent = r1 ? trendText(r1.trend) : 'n/a';
-      elements.trigger15m.textContent = triggerText(r15);
+      elements.trigger15m.textContent = r15 && freshness(m, r15, '15m') ? triggerText(r15) + ' (technical only)' : 'Stale/unavailable · no trigger';
       elements.positionSize.textContent = sizeText(a, symbol);
       const notes = a.side ? a.side.notes.slice() : [];
       if (a.news) notes.push('news today, entry delayed');
       if (m.layers !== 'all') notes.push('carry and value rules apply to currencies only');
-      elements.sizeNotes.textContent = notes.length ? notes.join('; ') : 'Full size';
+      elements.sizeNotes.textContent = 'Trade sizing disabled; validation incomplete';
       elements.heroBias.textContent = trendText(r.trend);
       elements.heroRR.textContent = r.rsi.toFixed(1);
       elements.heroScore.textContent = a.direction ? `${a.met}/${a.total}` : '0/5';
@@ -790,9 +781,10 @@
 
     async function loadData(announce) {
       const results = await Promise.all(DATA_URLS.map(url =>
-        fetch(`${url}?t=${Date.now()}`, { cache: 'no-store' }).then(res => res.ok ? res.json() : null).catch(() => null)));
+        fetch(`${url}?t=${Date.now()}`, { cache: 'no-store', signal: AbortSignal.timeout(10000) }).then(res => res.ok ? res.json() : null).catch(() => null)));
       const newest = results.filter(d => d && d.markets).sort((x, y) => new Date(y.generated) - new Date(x.generated))[0];
       if (!newest) {
+        if (state.data) updateUI();
         if (!state.data) {
           elements.dataStatus.textContent = 'No market data available';
           elements.dataError.textContent = 'The data file could not be loaded. Nothing is shown, because this dashboard does not invent values.';
@@ -834,6 +826,7 @@
     window.addEventListener('resize', () => drawChart());
     loadData(false);
     window.setInterval(() => loadData(false), REFRESH_MS);
+    window.setInterval(() => updateUI(), 30000); // expire displayed observations even if fetch hangs
   </script>
 </body>
 </html>
