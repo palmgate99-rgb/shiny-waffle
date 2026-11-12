@@ -25,3 +25,4 @@ jobs:
       - run: python -m unittest fx_strategy.tests.test_strategy
       - run: node tests/dashboard.test.cjs
       - run: node tests/feed.test.cjs
+      - run: node tests/private-ui.test.cjs
