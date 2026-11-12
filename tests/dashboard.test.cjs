@@ -1,0 +1,18 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+const html = fs.readFileSync('smart_money_market_checker.html','utf8');
+const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
+new vm.Script(script);
+const fn = script.slice(script.indexOf('    function freshness('),script.indexOf('    function analyse('));
+const now = Date.parse('2026-11-12T14:30:00Z');
+const ctx={state:{data:{generated:'2026-11-12T14:29:00Z'}},STALE_MINUTES:45};vm.createContext(ctx);vm.runInContext(fn,ctx);
+const m={price_time:'2026-11-12T14:29:00Z'},r={bar_time:'2026-11-12T14:00:00Z'};
+assert.equal(ctx.freshness(m,r,'15m',now),true);
+for (const bad of [{...m,stale:true},{...m,price_time:'invalid'},{...m,price_time:'2026-11-10T14:29:00Z'},{...m,price_time:'2026-11-13T14:29:00Z'}]) assert.equal(ctx.freshness(bad,r,'15m',now),false);
+assert.equal(ctx.freshness(m,{bar_time:'2026-11-12T14:30:00Z'},'15m',now),false);
+assert.equal(ctx.freshness(m,{bar_time:'2026-11-10T14:00:00Z'},'15m',now),false);
+ctx.state.data.generated='2026-11-10T14:29:00Z';assert.equal(ctx.freshness(m,r,'15m',now),false);
+assert.match(script,/const direction = 0;/);assert.match(script,/No qualified trade signals/);
+assert.equal(JSON.parse(fs.readFileSync('vercel.json')).rewrites[0].destination,'/smart_money_market_checker.html');
+console.log('PASS: script syntax, freshness (8 cases), fail-closed signals, homepage route');
