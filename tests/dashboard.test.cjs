@@ -16,3 +16,10 @@ ctx.state.data.generated='2026-11-10T14:29:00Z';assert.equal(ctx.freshness(m,r,'
 assert.match(script,/const direction = 0;/);assert.match(script,/No qualified trade signals/);
 assert.equal(JSON.parse(fs.readFileSync('vercel.json')).rewrites[0].destination,'/smart_money_market_checker.html');
 console.log('PASS: script syntax, freshness (8 cases), fail-closed signals, homepage route');
+const validator=script.slice(script.indexOf('    function validData('),script.indexOf('    function freshness('));
+ctx.categoryNames={currencies:1,indices:1,gold:1,stocks:1};vm.runInContext(validator,ctx);
+const sample=JSON.parse(fs.readFileSync('dashboard_data.json','utf8'));
+assert.equal(ctx.validData(sample),true);
+for(const bad of [{markets:{}},{...sample,rules:null},{...sample,timeframes:['bad']},{...sample,news_today:null}])assert.equal(ctx.validData(bad),false);
+const bad=structuredClone(sample);bad.markets['EUR/USD'].tf['15m'].close=null;assert.equal(ctx.validData(bad),false);
+console.log('PASS schema validation: saved dataset and malformed payload rejection');
