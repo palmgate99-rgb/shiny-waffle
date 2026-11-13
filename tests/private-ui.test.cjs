@@ -3,7 +3,7 @@ const script=[...fs.readFileSync('smart_money_market_checker.html','utf8').match
 const els={},requests=[],pending=[];
 const ctx2d=new Proxy({}, {get:()=>()=>{}});
 function element(id){return els[id]??=( {value:id==='privatePair'?'EURUSD':id==='privateTf'?'15m':'',textContent:'',width:1000,height:300,handlers:{},addEventListener(e,f){this.handlers[e]=f},getContext(){return ctx2d}})}
-const context={document:{getElementById:element},Date,AbortController,setTimeout,clearTimeout,setInterval:()=>{},encodeURIComponent,
+const context={technicalContext:require('../assets/technical-context.js'),document:{getElementById:element},Date,AbortController,setTimeout,clearTimeout,setInterval:()=>{},encodeURIComponent,
 fetch:(url,opts)=>{requests.push({url,opts});return new Promise(resolve=>pending.push(resolve));}};
 vm.runInNewContext(script,context);
 const flush=()=>new Promise(r=>setImmediate(r));

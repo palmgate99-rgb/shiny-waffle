@@ -321,6 +321,7 @@
     @media (max-width: 1080px) { .hero, .dashboard { grid-template-columns: 1fr; } .market-grid { grid-template-columns: repeat(3, 1fr); } .setup-grid { grid-template-columns: 1fr 1fr; } }
     @media (max-width: 760px) { .market-grid, .setup-grid, .breakdown { grid-template-columns: 1fr; } .two-col, .mini-grid { grid-template-columns: 1fr; } header { align-items: flex-start; flex-direction: column; } .hero-card, .checker-card, .panel { padding: 20px; border-radius: 22px; } .hero h2 { font-size: 42px; } .chart-shell { height: 310px; } }
   </style>
+  <link rel="stylesheet" href="assets/command-board.css" />
 </head>
 <body>
   <div class="orb one"></div>
@@ -336,17 +337,37 @@
           </svg>
         </div>
         <div>
-          <h1>Tradefada Market Dashboard</h1>
-          <p>Trend, carry, value and RSI rules on real prices for forex, indices, metals, and stocks</p>
+          <h1>Tradefada · Forex Command Board</h1>
+          <p>Private indicative feed + clearly separated historical research. Signals remain gated.</p>
         </div>
       </div>
       <div class="status-pill"><span class="pulse-dot"></span><span id="statusText">Loading market data</span></div>
     </header>
 
+    <p class="data-warning">HISTORICAL RESEARCH BELOW: saved Yahoo snapshot, not the private live feed. No qualified trade signals or execution.</p>
+    <section class="panel" style="margin-bottom:24px" aria-label="Private live market feed">
+      <h3>Private TickerLayer feed</h3>
+      <p>Separate from the historical Yahoo charts below. Enter your dashboard access passphrase, NOT your provider API key. It stays in memory only until disconnect or page close.</p>
+      <div class="two-col">
+        <div><label for="privateToken">Dashboard access passphrase</label><input id="privateToken" type="password" autocomplete="off" /></div>
+        <div><label for="privatePair">Pair</label><select id="privatePair"><option>EURUSD</option><option>GBPUSD</option><option>USDJPY</option><option>USDCAD</option><option>USDCHF</option><option>AUDUSD</option><option>NZDUSD</option></select></div>
+        <div><label for="privateTf">Closed candles</label><select id="privateTf"><option value="15m">M15</option><option value="1h">H1</option><option value="4h">H4</option></select></div>
+      </div>
+      <button id="connectPrivate">Connect private feed</button> <button id="disconnectPrivate" class="secondary">Disconnect</button>
+      <button id="refreshPrivate" class="secondary">Refresh once</button>
+      <label><input id="autoPrivate" type="checkbox" /> Auto-update quotes every minute (uses provider allowance)</label>
+      <p id="privateUsage">Manual refresh by default. Cached quotes are shared across timeframes; candles refresh after bar close. Multiple tabs or server instances can still consume separate calls. No account-wide quota guarantee.</p>
+      <p id="privateMetrics"></p><ul id="privateChecks"></ul>
+      <p id="privateStatus" role="status">Not connected. No live prices loaded.</p>
+      <p id="privateQuote"></p><p id="privateTime"></p>
+      <canvas id="privateCanvas" width="1000" height="300" style="width:100%;height:300px" aria-label="Private closed-candle chart"></canvas>
+      <p>Indicative OTC feed, not Eightcap prices. Refreshes once per minute while connected. No trades or qualified signals. A closed market may show stale data.</p>
+    </section>
+
     <section class="hero">
       <div class="hero-card">
         <div class="eyebrow"><span class="spark"></span>Major Currencies • Indices • Metals • Stocks • 15M / 1H / 4H</div>
-        <h2>Monitor <span class="gradient-text">market structure</span> with transparent data status.</h2>
+        <h2>Historical <span class="gradient-text">research workspace.</span></h2>
         <p class="hero-copy">
           Review saved finished 15 minute, 1 hour and 4 hour candles from Yahoo Finance. These are indicative technical readings, not broker quotes or qualified trades. No order execution, verified event calendar or performance guarantee is provided.
         </p>
@@ -367,7 +388,7 @@
             <h3>Market Setup Scanner</h3>
             <p>Choose a market and timeframe. Trade sizing stays disabled until a complete, independently validated setup is available.</p>
           </div>
-          <span class="badge">Real data</span>
+          <span class="badge">Historical</span>
         </div>
 
         <div class="two-col">
@@ -413,21 +434,6 @@
           <div class="error" id="dataError" role="alert"></div>
         </div>
       </aside>
-    </section>
-
-    <section class="panel" style="margin-bottom:24px" aria-label="Private live market feed">
-      <h3>Private TickerLayer feed</h3>
-      <p>Separate from the historical Yahoo charts below. Enter your dashboard access passphrase, NOT your provider API key. It stays in memory only until disconnect or page close.</p>
-      <div class="two-col">
-        <div><label for="privateToken">Dashboard access passphrase</label><input id="privateToken" type="password" autocomplete="off" /></div>
-        <div><label for="privatePair">Pair</label><select id="privatePair"><option>EURUSD</option><option>GBPUSD</option><option>USDJPY</option><option>USDCAD</option><option>USDCHF</option><option>AUDUSD</option><option>NZDUSD</option></select></div>
-        <div><label for="privateTf">Closed candles</label><select id="privateTf"><option value="15m">M15</option><option value="1h">H1</option><option value="4h">H4</option></select></div>
-      </div>
-      <button id="connectPrivate">Connect private feed</button> <button id="disconnectPrivate" class="secondary">Disconnect</button>
-      <p id="privateStatus" role="status">Not connected. No live prices loaded.</p>
-      <p id="privateQuote"></p><p id="privateTime"></p>
-      <canvas id="privateCanvas" width="1000" height="300" style="width:100%;height:300px" aria-label="Private closed-candle chart"></canvas>
-      <p>Indicative OTC feed, not Eightcap prices. Refreshes once per minute while connected. No trades or qualified signals. A closed market may show stale data.</p>
     </section>
 
     <section class="dashboard" aria-label="Market dashboard results">
@@ -866,12 +872,13 @@
     window.setInterval(() => loadData(false), REFRESH_MS);
     window.setInterval(() => updateUI(), 30000); // expire displayed observations even if fetch hangs
   </script>
+<script src="/assets/technical-context.js"></script>
 <script>
 (() => {
   const byId=id=>document.getElementById(id);
-  let token='',last=null,inflight=false,controller=null,generation=0;
+  let token='',last=null,inflight=false,controller=null,generation=0,retryAt=0,failures=0,authFailed=false;
   const status=byId('privateStatus'),quote=byId('privateQuote'),time=byId('privateTime'),canvas=byId('privateCanvas'),context=canvas.getContext('2d');
-  function clear(){last=null;quote.textContent='';time.textContent='';context.clearRect(0,0,canvas.width,canvas.height);}
+  function clear(){last=null;quote.textContent='';time.textContent='';byId('privateMetrics').textContent='';byId('privateChecks').textContent='No qualified setup: provider, structure, event and cost checks must pass.';context.clearRect(0,0,canvas.width,canvas.height);}
   function paint(d){
     const bars=d.bars;context.clearRect(0,0,canvas.width,canvas.height);
     if(!bars.length)return;
@@ -883,28 +890,41 @@
     if(!last)return;
     const fresh=Date.now()-last.quote.timestamp<=120000 && last.status==='indicative';
     const duration={'15m':900000,'1h':3600000,'4h':14400000}[last.timeframe];
-    const latest=last.bars.at(-1);const candlesFresh=last.candles_fresh&&latest&&Date.now()-(latest.time+duration)<=duration+120000;
+    const latest=last.bars.at(-1);const candlesFresh=last.candles_fresh&&latest&&latest.time+duration>=Math.floor((Date.now()-10000)/duration)*duration;
     status.textContent=(fresh?'Indicative quote current':'STALE quote, do not trade')+(candlesFresh?' · closed candles available':' · candles stale/unavailable');
     quote.textContent=`${last.pair} bid ${last.quote.bid} / ask ${last.quote.ask} · TickerLayer`;
+    const closes=last.bars.map(b=>b.close),recent=last.bars.slice(-20),pip=last.pair.endsWith('JPY')?.01:.0001;
+    const enough=recent.length===20,sma=enough?recent.reduce((a,b)=>a+b.close,0)/20:null;
+    const support=enough?Math.min(...recent.map(b=>b.low)):null,resistance=enough?Math.max(...recent.map(b=>b.high)):null;
+    const technical=technicalContext(last.bars);
+    byId('privateMetrics').textContent=`Selected ${last.timeframe} context only: ${enough?`20-bar SMA ${sma.toFixed(5)} · range low ${support.toFixed(5)} / high ${resistance.toFixed(5)}`:'insufficient history (20 bars required)'} · indicative spread ${((last.quote.ask-last.quote.bid)/pip).toFixed(1)} pips. Range extremes are not validated trade levels. RSI(14, Wilder): ${technical.rsi===null?'unavailable':technical.rsi.toFixed(1)} · CRT: ${technical.crt} · Price action: ${technical.priceAction} · SMT: ${technical.smt}. These observations are not qualified signals.`;
+    byId('privateChecks').textContent=`NO QUALIFIED SETUP · 1 Data: ${fresh&&candlesFresh?'current indicative data':'blocked: stale or missing'} · 2 Structure: multi-timeframe confirmation not integrated · 3 Events: official calendar not connected · 4 Positioning: dated CFTC report not connected · 5 Execution: Eightcap costs and structure-based 2:1 target not verified. Historical scanner is separate.`;
     time.textContent=`Quote event: ${new Date(last.quote.timestamp).toISOString()} · observed: ${last.observed_at} · ${last.timeframe} latest bar start: ${last.bars.length?new Date(last.bars.at(-1).time).toISOString():'none'}`;
   }
   async function refresh(){
-    if(!token||inflight)return;const current=generation;inflight=true;controller=new AbortController();const timer=setTimeout(()=>controller.abort(),12000);
+    if(!token||inflight||document.hidden)return;if(Date.now()<retryAt){status.textContent=`Feed cooling down until ${new Date(retryAt).toISOString()}. No qualified signals.`;return;}const current=generation;inflight=true;controller=new AbortController();const timer=setTimeout(()=>controller.abort(),12000);
     try{
       const pair=byId('privatePair').value,tf=byId('privateTf').value;
       const response=await fetch(`/api/feed?pair=${encodeURIComponent(pair)}&timeframe=${encodeURIComponent(tf)}`,{headers:{Authorization:`Bearer ${token}`},cache:'no-store',signal:controller.signal});
       if(current!==generation)return;
-      if(!response.ok){clear();status.textContent=response.status===401?'Access passphrase not accepted.':response.status===503?'Server feed configuration incomplete.':response.status===429?'Provider quota reached. Refresh paused until next minute.':'Feed unavailable. No live data shown.';return;}
+      if(!response.ok){
+        clear();failures++;
+        const raw=response.headers?.get('retry-after'),seconds=Number(raw),delay=raw&&Number.isFinite(seconds)?seconds*1000:Date.parse(raw)-Date.now();
+        retryAt=Date.now()+(response.status===429?Math.max(60000,Number.isFinite(delay)?delay:300000):Math.min(900000,60000*2**Math.min(failures-1,4)));
+        authFailed=response.status===401;if(response.status===401||response.status===503)byId('autoPrivate').checked=false;
+        status.textContent=response.status===401?'Access passphrase not accepted.':response.status===503?'Server feed configuration incomplete.':response.status===429?'Provider quota reached; respecting cooldown.':'Feed unavailable; retry backoff active. No live data shown.';return;
+      }
       const d=await response.json();if(!token||current!==generation)return;
       if(!d.quote||!Array.isArray(d.bars)||![d.quote.bid,d.quote.ask,d.quote.timestamp].every(Number.isFinite))throw Error('schema');
-      last=d;paint(d);freshness();
-    }catch(e){if(current!==generation)return;clear();status.textContent=token?'Feed unavailable. No live data shown.':'Disconnected.';}
+      failures=0;retryAt=0;last=d;paint(d);freshness();
+    }catch(e){if(current!==generation)return;clear();failures++;retryAt=Date.now()+Math.min(900000,60000*2**Math.min(failures-1,4));status.textContent=token?'Feed unavailable. No live data shown.':'Disconnected.';}
     finally{clearTimeout(timer);inflight=false;controller=null;if(current!==generation&&token)refresh();}
   }
-  byId('connectPrivate').addEventListener('click',()=>{generation++;token=byId('privateToken').value;byId('privateToken').value='';clear();status.textContent=token?'Connecting securely…':'Enter your separate dashboard passphrase.';refresh();});
+  byId('connectPrivate').addEventListener('click',()=>{generation++;if(authFailed){retryAt=0;failures=0;authFailed=false;}token=byId('privateToken').value;byId('privateToken').value='';clear();status.textContent=token?'Connecting securely…':'Enter your separate dashboard passphrase.';refresh();});
   byId('disconnectPrivate').addEventListener('click',()=>{generation++;token='';byId('privateToken').value='';controller?.abort();clear();status.textContent='Disconnected. Private feed cleared.';});
   ['privatePair','privateTf'].forEach(id=>byId(id).addEventListener('change',()=>{generation++;clear();refresh();}));
-  setInterval(refresh,60000);setInterval(freshness,10000);
+  byId('refreshPrivate').addEventListener('click',refresh);
+  setInterval(()=>{if(byId('autoPrivate').checked)refresh();},60000);setInterval(freshness,10000);
 })();
 </script>
 </body>
