@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DXY evidence board</title>
+<style>body{background:#101823;color:#edf3fa;font:16px system-ui;max-width:1000px;margin:auto;padding:28px}section{background:#1b293a;padding:20px;border-radius:12px;margin:20px 0}button,input{font:inherit;padding:10px;margin:5px}pre{white-space:pre-wrap;overflow-wrap:anywhere}a{color:#8fc9ff}</style></head>
+<body><a href="/">Dashboard</a><h1>DXY evidence board · H1 / H4</h1>
+<p>Official cash-index route pending provider verification. No continuous monitor or external alerts are active.</p>
+<label>Dashboard access passphrase <input id="token" type="password" autocomplete="off"></label>
+<button id="load">Check once</button><button id="clear">Clear</button>
+<p id="status" role="status">No market observations loaded.</p>
+<section><h2>Market observations</h2><pre id="market">Unavailable</pre></section>
+<section><h2>Technical conditions</h2><pre id="technical">Unavailable</pre></section>
+<section><h2>Potential setups</h2><pre id="setups">Unavailable</pre></section>
+<section><h2>Session heads-ups</h2><pre id="sessions">Requires a valid observation. Windows are planning conventions, not exchange calendars.</pre></section>
+<script>
+(()=>{
+  const el=id=>document.getElementById(id);
+  let generation=0,controller,expiry;
+  const clear=()=>{clearTimeout(expiry);['market','technical','setups','sessions'].forEach(id=>el(id).textContent='Unavailable');};
+  el('clear').onclick=()=>{generation++;controller?.abort();el('token').value='';clear();el('status').textContent='Cleared. No monitoring active.';};
+  el('load').onclick=async()=>{
+    const current=++generation,token=el('token').value;el('token').value='';controller?.abort();clear();
+    if(!token){el('status').textContent='Enter your dashboard passphrase.';return;}
+    const abort=controller=new AbortController();el('status').textContent='Checking provider and completed candles…';
+    const timeout=setTimeout(()=>abort.abort(),12000);
+    try{
+      const r=await fetch('/api/dxy',{headers:{Authorization:`Bearer ${token}`},cache:'no-store',signal:abort.signal});
+      const d=await r.json();if(current!==generation)return;
+      if(!r.ok){el('status').textContent=`Unavailable: ${d.status}. No analysis shown.`;return;}
+      const deadline=Date.parse(d.valid_until);
+      if(d.status!=='observations_valid'||!Number.isFinite(deadline)||deadline<=Date.now())throw Error('expired');
+      [['market',d.market_data],['technical',d.technical_conditions],['setups',d.potential_setups],['sessions',d.sessions]].forEach(([id,value])=>el(id).textContent=JSON.stringify(value,null,2));
+      el('status').textContent='Validated observations at this check. Setup watches are conditional, not trade signals. No monitoring active.';
+      expiry=setTimeout(()=>{clear();el('status').textContent='Observation expired. Check again for fresh data.';},deadline-Date.now());
+    }catch{if(current===generation){clear();el('status').textContent='Check failed or data expired. No analysis shown.';}}
+    finally{clearTimeout(timeout);}
+  };
+})();
+</script></body></html>
