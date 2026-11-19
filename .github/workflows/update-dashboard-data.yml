@@ -26,3 +26,4 @@ jobs:
       - run: node tests/dashboard.test.cjs
       - run: node tests/feed.test.cjs
       - run: node tests/private-ui.test.cjs
+      - run: node --test tests/dxy.test.cjs tests/dxy-ui.test.cjs

@@ -1,5 +1,16 @@
 # Honest deployment status
 
+## DXY proposal (disabled)
+
+See [DXY_REVIEW.md](DXY_REVIEW.md) for source research, entitlement blockers,
+the proposed private Barchart `$DXY` adapter and H1/H4 evidence board at `/dxy.html`.
+This route is disabled, not live-verified, and has no continuous worker or external
+notifications. TickerLayer index requests returned plan-denied 403; its USDX
+catalog entry does not prove official ICE cash-index provenance or permissions.
+The user approved code merge on 19 November 2026. Automatic Git deployments are
+disabled in vercel.json. Do not enable DXY, deploy or activate notifications without
+separate user approval and the documented provider acceptance checks.
+
 This branch builds on PR #1, not main. The static monitoring dashboard displays saved Yahoo data. It is NOT a qualified trading-signal engine. No Eightcap account or execution integration exists.
 
 ## Existing Yahoo pipeline
